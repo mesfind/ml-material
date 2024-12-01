@@ -1,11 +1,13 @@
-import numpy as np
 import random
-import matplotlib.pyplot as plt
-import pandas as pd
 import torch
+import numpy as np
+import pandas as pd
 import torch.nn as nn
+import torch.optim as optim
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Set seed for reproducibility
@@ -28,14 +30,6 @@ df['datestamp'] = pd.to_datetime(df['datestamp'])
 df = df.set_index('datestamp')
 
 
-import numpy as np
-import pandas as pd
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
 
 # Sliding window generation class
 class SlidingWindowGenerator:
