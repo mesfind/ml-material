@@ -1,124 +1,154 @@
-# Setting Up a Python virtual environment on Ubuntu 
----
-
-## Method 1: Using venv Module (Recommended)
-
-### 1) Open a Terminal
-
-- Press `Ctrl + Alt + T` or search for `Terminal` in your application launcher.
-
-### 2) Navigate to the Desired Directory
-
-- Use the `cd` command to navigate to the location where you want to create the virtual environment. For example:
-
-`cd Documents/my_project`
-
-### 3) Create the Virtual Environment
-
-- Use the `python3 -m venv` command followed by your desired environment name:
-
-`python3 -m venv my_env`
-
-- This creates a virtual environment directory named `my_env` in the current location.
-
-### 4) Activate the Virtual Environment
-
-- Activate the environment by running the following command (replace my_env accordingly):
-
-`source my_env/bin/activate`
-
-### 5) Install Required Packages
-
-- Once the environment is activated, use pip to install the packages you need for your project:
-
-`pip install <package_name>`
-
-### 6) Deactivate the Environment (Optional)
-
-When you're finished, deactivate the environment by typing:
-
-`deactivate`
-
-- This exits the virtual environment and returns you to your system's default Python environment.
+# Lesson: Setting Up Python Environments on Ubuntu
 
 ---
 
-## Method 2: Using virtualenv (Optional)
+## Objective
 
-This method might require installing virtualenv first:
-
-### 1) Update package lists
-
-`sudo apt update`  
-
-### 2) Install virtualenv
-
-`sudo apt install python3-venv`
-
-### 3) Create the Virtual Environment
-
-- Use the `virtualenv` command followed by your desired environment name:
-
-`virtualenv my_env`
-
-- This creates a virtual environment directory named `my_env` in the current location.
-
-### 4) Activate the Virtual Environment
-
-- Activate the environment by running the following command (replace my_env accordingly):
-
-`source my_env/bin/activate`
-
-### 5) Install Required Packages
-
-- Once the environment is activated, use pip to install the packages you need for your project:
-
-`pip install <package_name>`
-
-### 6) Deactivate the Environment (Optional)
-
-When you're finished, deactivate the environment by typing:
-
-`deactivate`
-
-- This exits the virtual environment and returns you to your system's default Python environment.
-
-## Method 3: Python virtual environment using the conda package manager
-
-### 1. Create the Environment
-
-- Open a terminal window. Use the conda create command followed by the desired environment name and the Python version you want.
-
-- Replace "my_env" with your preferred name and "3.9" with the Python version
-
-`conda create -n my_env python=3.9`
-
-- This command creates a new environment named my_env with Python version 3.9 (adjust the version as needed).
-  
-- The -n flag specifies the environment name.
-
-### 2. Activate the Environment
-
-Once created, activate the environment using the following command (adjust the environment name if needed):
-
-`conda activate my_env`
-
-### 3. Deactivate the Environment
-
-When finished, deactivate the environment by typing:
-
-`conda deactivate`
+By the end of this lesson, you will know how to set up and use Python environments with **Conda** and **virtual environments (venv or virtualenv)**. This ensures you can manage dependencies and isolate projects effectively.
 
 ---
 
-If you dont have conda installed on your system.
+### Part 1: Using Conda to Set Up a Virtual Environment
 
-Install Anaconda on Windows OS:
+#### Step 1: Creating the Environment
+- Open the terminal.
+- Type the following command to create a Conda environment named **torch** with Python 3.9:
 
-- https://www.anaconda.com/download
+  ```bash
+  conda create -n torch python=3.9
+  ```
 
-Install Anaconda on Ubuntu OS. 
+- Replace `3.9` with your required Python version if necessary.
 
-- https://yonsci.github.io/yon_academic//portfolio/portfolio-2/
+**Key Points:**
+- `torch` is the environment name.
+- `python=3.9` specifies the Python version.
+
+#### Step 2: Activating the Environment
+- Activate the environment with:
+
+  ```bash
+  conda activate torch
+  ```
+
+**Key Points:**
+- The terminal prompt will change, showing the name of the active environment (torch).
+
+#### Step 3: Installing Packages
+- Install packages using `conda` or `pip`:
+
+  ```bash
+  conda install <package_name>
+  pip install <package_name>
+  ```
+
+**Key Points:**
+- Use Conda for faster and precompiled package installations.
+- Use Pip when a package is unavailable in Conda.
+
+#### Step 4: Deactivating the Environment
+- Exit the environment with:
+
+  ```bash
+  conda deactivate
+  ```
+
+**Key Points:**
+- Deactivating ensures you return to your system's default Python environment.
 
 ---
+
+### Part 2: Setting Up a Virtual Environment with venv or virtualenv
+
+#### Method 1: Using `venv` (Built-in Python Module)
+
+1. **Create the Environment**
+   - Navigate to your project directory:
+     
+     ```bash
+     cd Documents/my_project
+     ```
+   - Create a virtual environment named **torch**:
+
+     ```bash
+     python3 -m venv torch
+     ```
+
+2. **Activate the Environment**
+   - Run the following command to activate:
+
+     ```bash
+     source torch/bin/activate
+     ```
+
+   **Key Points:**
+   - After activation, your terminal prompt will show `(torch)` to indicate the active environment.
+
+3. **Install Required Packages**
+   - Use pip to install dependencies:
+
+     ```bash
+     pip install <package_name>
+     ```
+
+4. **Deactivate the Environment**
+   - Exit the environment with:
+
+     ```bash
+     deactivate
+     ```
+
+---
+
+#### Method 2: Using `virtualenv` (Optional)
+
+1. **Install Virtualenv**
+   - Update your system's package lists and install virtualenv:
+
+     ```bash
+     sudo apt update
+     sudo apt install python3-virtualenv
+     ```
+
+2. **Create the Environment**
+   - Navigate to your project folder and create the environment:
+
+     ```bash
+     cd Documents/my_project
+     virtualenv torch
+     ```
+
+3. **Activate the Environment**
+   - Run the activation command:
+
+     ```bash
+     source torch/bin/activate
+     ```
+
+4. **Install Required Packages**
+   - Use pip to install any necessary packages:
+
+     ```bash
+     pip install <package_name>
+     ```
+
+5. **Deactivate the Environment**
+   - Exit the environment with:
+
+     ```bash
+     deactivate
+     ```
+
+---
+
+### Exercises for Learners
+
+1. Create a Conda environment named **torch_env** with Python 3.12. Install the `numpy` package.
+2. Set up a virtual environment using `venv` named **torch_venv**. Activate it and install the `pandas` package.
+3. Deactivate both environments after installation.
+
+---
+
+### Recap
+- **Conda** is best for managing environments with both Python and non-Python dependencies.
+- **venv** and **virtualenv** are ideal for simple Python projects.
