@@ -79,3 +79,8 @@ We can use shapely attributes and operations to get geometries of interest
 countries[countries["continent"] == "Africa"].unary_union
 ~~~
 {: .python}
+
+
+
+ERA5 consists of the climate variable data from 1959 to present. The ERA5 dataset is freely-accessible to the community on the Climate Data Store (CDS) hosted by the European Union's Earth observation programme, Copernicus. The users can visit https://cds.climate.copernicus.eu/api-how-to to install the CDS API key required to access their data.
+The authors from [2] (WeatherBench dataset) downloaded the ERA5 data from CDS API for a subset of climate variable and preprocessed it at multiple resolutions. The data is freely accessible to anyone at https://dataserv.ub.tum.de/index.php/s/m1524895?path=%2F.
