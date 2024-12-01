@@ -300,3 +300,75 @@ To recreate an environment from a `.yaml` file, use the following command:
 PS C:\> conda env create --file environment.yaml
 ~~~  
 {: .bash}
+
+
+
+Here’s the revised exercise with the environment name changed to `ml-flow`.
+
+---
+
+## Exercise: Conda Environment Setup on Windows
+
+### Objective:
+- Learn how to create, activate, and manage Conda environments on Windows using **PowerShell**.
+- Practice installing packages and exporting the environment configuration.
+
+### Tasks:
+
+1. **Install Conda**:
+   - If you haven't already, download and install **Anaconda** or **Miniconda** from their official websites.
+   - Verify the installation by running this command in PowerShell:
+     ~~~
+     PS C:\> conda --version
+     ~~~
+     You should see the version of Conda installed.
+
+2. **Create a New Conda Environment**:
+   - Create a Conda environment named `ml-flow` with Python 3.10:
+     ~~~
+     PS C:\> conda create --name ml-flow python=3.10
+     ~~~
+   - Confirm the environment creation when prompted.
+
+3. **Activate the New Environment**:
+   - Activate the `ml-flow` environment:
+     ~~~
+     PS C:\> conda activate ml-flow
+     ~~~
+   - You should see `(ml-flow)` before the command prompt, indicating that the environment is active.
+
+4. **Install Packages**:
+   - Install two packages: `numpy` and `matplotlib`:
+     ~~~
+     PS C:\> conda install numpy matplotlib
+     ~~~
+   - Wait for the installation to complete.
+
+5. **Verify Package Installation**:
+   - Check if `numpy` and `matplotlib` are installed by running:
+     ~~~
+     PS C:\> conda list
+     ~~~
+   - You should see `numpy` and `matplotlib` in the list of installed packages.
+
+6. **Deactivate the Environment**:
+   - Deactivate the environment and return to the base environment:
+     ~~~
+     PS C:\> conda deactivate
+     ~~~
+
+7. **Export the Environment Configuration**:
+   - Export the `ml-flow` environment configuration to a YAML file:
+     ~~~
+     PS C:\> conda env export --no-builds --file ml-flow.yaml
+     ~~~
+   - Check that the `ml-flow.yaml` file has been created in your current directory.
+
+8. **Remove the Environment**:
+   - Finally, remove the environment after you're done:
+     ~~~
+     PS C:\> conda env remove --name ml-flow
+     ~~~
+   - Confirm that the environment is removed by running `conda env list`.
+
+
