@@ -1,0 +1,11 @@
+*.pyc
+*~
+.DS_Store
+.ipynb_checkpoints
+.sass-cache
+__pycache__
+_site
+.jekyll-cache
+data/ERSSTv5_deseasoneddetrended_5monthrunningmean_1950-2021.nc
+data/cifar*
+ .virtual_documents/*

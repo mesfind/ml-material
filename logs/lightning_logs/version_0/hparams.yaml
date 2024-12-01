@@ -1,0 +1,10 @@
+ignore: null
+model: faster-rcnn
+backbone: resnet18
+weights: true
+in_channels: 3
+num_classes: 11
+trainable_layers: 3
+lr: 0.001
+patience: 10
+freeze_backbone: false
