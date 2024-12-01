@@ -41,6 +41,7 @@ permalink: /setup/
 ```bash
    cd Downloads
 ```
-   Then try again.
+Then try again.
+
 5. Press enter and follow the prompts. Use the space key to scroll through text. Approve the license by typing `yes` and pressing enter. Accept the default file location by pressing enter. Type `yes` and press enter to prepend Anaconda to your `PATH` (this makes Anaconda the default Python).
 6. Close the terminal window.
