@@ -2,6 +2,18 @@
 layout: page
 title: Setup
 permalink: /setup/
+questions:
+- "What is a virtual environment?"
+- "How do virtual environments help manage dependencies?"
+- "How do you create and activate a virtual environment?"
+objectives:
+- "Learn about virtual environments and their purpose in Python projects."
+- "Understand how to create and manage virtual environments."
+- "Get hands-on experience with setting up and using a virtual environment."
+keypoints:
+- "Virtual environments isolate dependencies."
+- "Using `venv` for creating environments."
+- "Activating and deactivating virtual environments."
 ---
 
 # Python environment Managment
@@ -27,17 +39,17 @@ admin@MacBook~ $ conda create -n <env_name> python=<version#>
 ~~~
 {: bash}
 
-For instance, to create a new conda environment called `pygmt` with Python 3.11:
+For instance, to create a new conda environment called `pygmt` with Python 3.12
 
 ~~~
-admin@MacBook~ $ conda create --name pygmt python=3.11
+admin@MacBook~ $ conda create --name ml-climate python=3.12
 ~~~
 {: .bash}
 
 To activate the environment:
 
 ~~~
-admin@MacBook~ $ conda activate pygmt
+admin@MacBook~ $ conda activate ml-climate
 ~~~
 {: .bash}
 
@@ -63,7 +75,7 @@ In order to create a new environment you use the conda create command as follows
 
 
 ~~~
-admin@MacBook~ $ conda create --name pygmt \
+admin@MacBook~ $ conda create --name ml-flow \
  scikit-learn \
  geopandas \
  cartopy \
@@ -78,7 +90,7 @@ admin@MacBook~ $ conda create --name pygmt \
 Now let’s do the reverse operation and create an environment from a yaml file. You will find these files often in GitHub repositories, so it is handy to know how to use them. Let’s open a text editor and make some changes to our myenv.yaml file, so that it looks like this:
 
 ~~~
-name: pygmt
+name: ml-flow
 channels:
   - defaults
   - https://repo.anaconda.com/pkgs/main
@@ -104,7 +116,7 @@ dependencies:
 The next command we will cover in this workshop lets us export the configuration of an environment to a file, so that we can share it with others. Instead of bundling the packages themselves, `conda` exports a list of the package names and their versions, as we have them on our system. In addition to package details, the file contains also the list of all channels we defined in our configuration, both globally and environment-specific. Finally, the file is written in `YAML`, a human-readable text format that we can inspect manually and edit if necessary. Let’s export the `pygmt` environment to a file:
 
 ~~~
-admin@MacBook~ $ conda env export --no-builds --file pygmt.yaml
+admin@MacBook~ $ conda env export --no-builds --file ml-flow.yaml
 ~~~
 {: .bash}
 
@@ -148,7 +160,7 @@ admin@MacBook~ $ conda env remove --name $envname
 - Use the `cd` command to move to the directory where you want to create the virtual environment. For example:
 
 ~~~
-admin@MacBook~ $ cd Documents/myproject
+admin@MacBook~ $ cd Documents/ml-climate
 ~~~
 {: .bash}
 
@@ -157,18 +169,18 @@ admin@MacBook~ $ cd Documents/myproject
 - Execute the `python3 -m venv` command with your chosen environment name:
 
 ~~~
-admin@MacBook~ $ python3 -m venv pygmt
+admin@MacBook~ $ python3 -m venv ml-climate
 ~~~
 {: .bash}
 
-- This will create a directory named `pygmt` for your virtual environment in the specified location.
+- This will create a directory named `venv` for your virtual environment in the specified location.
 
 ### 4) Activate the Virtual Environment
 
-- Activate the virtual environment by running the following command, adjusting for your environment name:
+- Activate the virtual environment by running the following command, adjusting for your environment name
 
 ~~~
-admin@MacBook~ $ source myenv/bin/activate
+admin@MacBook~ $ source venv/bin/activate
 ~~~
 {: .bash}
 
@@ -218,18 +230,18 @@ admin@MacBook~ $ sudo apt install python3-venv
 - Use the `virtualenv` command with your chosen environment name:
 
 ~~~
-admin@MacBook~ $ virtualenv  pygmt
+admin@MacBook~ $ virtualenv  venv
 ~~~
 {: .bash}
 
-- This will create a directory named `myenv` for your virtual environment in the specified location.
+- This will create a directory named `venv` for your virtual environment in the specified location.
 
 ### Activate the Virtual Environment
 
 - Activate the virtual environment by running the following command, adjusting for your environment name:
 
 ~~~
-admin@MacBook~ $ source myenv/bin/activate
+admin@MacBook~ $ source venv/bin/activate
 ~~~
 {: .bash}
 
