@@ -3,7 +3,7 @@ layout: lesson
 root: .
 ---
 
-# Welcome to Machine Learning for climate
+# Welcome to Machine Learning Training
 
 
 ## Why Python?
