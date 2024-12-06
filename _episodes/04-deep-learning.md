@@ -546,6 +546,53 @@ sequential_ANN = nn.Sequential(
 print("\nSequential Model:\n", sequential_ANN)
 ~~~
 
+The following code  defines a more sophisticated multi-layer perceptron (MLP) with multiple hidden layers and activation functions compared to the simpler single-hidden-layer architecture of the previous `ANN`. This design allows for greater flexibility and capacity in learning complex patterns in data. Additionally, it incorporates device management to utilize available hardware resources efficiently, which is crucial for training larger models on substantial datasets.
+
+~~~
+class MLP(nn.Module): 
+    def __init__(self):
+        super(MLP, self).__init__()
+        self.layer1 = nn.Linear(8, 24)
+        self.relu1 = nn.ReLU()
+        self.layer2 = nn.Linear(24, 12)
+        self.relu2 = nn.ReLU()
+        self.layer3 = nn.Linear(12, 6)
+        self.relu3 = nn.ReLU()
+        self.layer4 = nn.Linear(6, 1)
+    def forward(self, x): 
+        x = self.layer1(x) 
+        x = self.relu1(x) 
+        x = self.layer2(x) 
+        x = self.relu2(x) 
+        x = self.layer3(x) 
+        x = self.relu3(x) 
+        x = self.layer4(x) 
+        return x
+
+model = MLP()
+device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
+# Check the selected device
+print("Selected device:", device)
+model.to(device)
+~~~
+{: .python}
+
+~~~
+Selected device: mps
+MLP(
+  (layer1): Linear(in_features=8, out_features=24, bias=True)
+  (relu1): ReLU()
+  (layer2): Linear(in_features=24, out_features=12, bias=True)
+  (relu2): ReLU()
+  (layer3): Linear(in_features=12, out_features=6, bias=True)
+  (relu3): ReLU()
+  (layer4): Linear(in_features=6, out_features=1, bias=True)
+)
+~~~
+{: .output}
+
+The above output indicates more complex multi-layer perceptron (MLP) neural network architecture compared to the previous ANN example above.
+
 
 ### Regression Model with Neural Networks
 
