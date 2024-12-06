@@ -472,6 +472,35 @@ By systematically following these steps, we construct a sequential neural networ
 
 <div> <img src="../fig/ANN2.png" alt="Drawing" style="width: 500px;"/></div>
 
+Let's creates an input tensor with random values, defines a linear transformation model with specified input and output sizes, and performs a forward pass to compute the output based on the input data
+
+~~~
+import torch
+import torch.nn as nn
+inp = torch.randn(1,10)
+model  = nn.Linear(in_features=10,
+                   out_features=5, bias=True)
+model(inp)
+~~~
+{: .python}
+
+
+ - `nn.Linear(...)`:  creates a linear transformation layer (also known as a fully connected layer).
+- `in_features=10` : Specifies that the input to this layer will have 10 features.
+
+- `out_features=5`: Specifies that the output from this layer will have 5 features.
+bias=True: Indicates that the layer will include a bias term (which is often included in linear layers).
+- `model(inp)`: This line performs a forward pass through the model using the input tensor inp. The model applies a linear transformation to the input data as
+\\[y=x\timesw+b$ \\]
+
+~~~
+tensor([[-0.4799, -0.3322, -1.4966,  0.1146,  1.5843]],
+       grad_fn=<AddmmBackward0>)
+~~~
+{: .output}
+
+
+Now, let's create a custom neural network class `ANN`  by subclassing `nn.Module`, which is the base class for all neural network modules in PyTorch. The constructor (`__init__`) initializes two layers: a hidden layer that transforms an input of size `1` into an output of size `3`, and an output layer that further reduces this to a single output. The `forward` method defines the forward pass of the network, applying the `ReLU` activation function to the output of the hidden layer before passing it to the output layer. Finally, an instance of the `ANN` model is created and printed, which will display the architecture of the network, including its layers and their configurations. This code illustrates how to build more complex neural network structures compared to the single linear layer used in the previous example.
 
 ~~~
 import torch

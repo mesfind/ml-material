@@ -441,7 +441,7 @@ class SlidingWindow:
 The code initializes a sliding window generator with specified parameters, including input width, label width, and shift. Below is an example demonstrating how to create and use a sliding window generator with a DataFrame:
 ~~~
 # Initialize the generator
-swg = SlidingWindowGenerator(seq_length=4, label_width=5, shift=1, df=df, label_columns=['co2'])
+swg = SlidingWindow(seq_length=4, label_width=5, shift=1, df=df, label_columns=['co2'])
 print(swg)
 ~~~
 {: .python}
@@ -510,8 +510,8 @@ First, we need to split the dataset into training and testing sets and convert t
 
 ~~~
 # Normalize the data
-scaler_X = MinMaxScaler()
-scaler_y = MinMaxScaler()
+scaler_X = StandardScaler()
+scaler_y = StandardScaler()
 
 X_shape = X.shape
 y_shape = y.shape
