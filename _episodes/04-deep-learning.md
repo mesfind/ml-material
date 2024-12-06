@@ -618,27 +618,28 @@ warnings.filterwarnings("ignore")
 # Set fixed random number seed
 torch.manual_seed(42);
 
-dataset = fetch_california_housing()
-print(dataset.data)
+url = 'https://raw.githubusercontent.com/mesfind/datasets/master/temp_anomalies.csv'
+df = pd.read_csv(url)
+df['Year'] = df['Year'].str.strip()
+df = df.rename(columns={'Year': 'date', 'Mean': 'anomalies'})
+df['date'] = pd.to_datetime(df['date'])
+df['year'] = df['date'].dt.year
+df['month'] = df['date'].dt.month
+df.head()
 ~~~
 {: .python}
 
 ~~~
-array([[   8.3252    ,   41.        ,    6.98412698, ...,    2.55555556,
-          37.88      , -122.23      ],
-       [   8.3014    ,   21.        ,    6.23813708, ...,    2.10984183,
-          37.86      , -122.22      ],
-       [   7.2574    ,   52.        ,    8.28813559, ...,    2.80225989,
-          37.85      , -122.24      ],
-       ...,
-       [   1.7       ,   17.        ,    5.20554273, ...,    2.3256351 ,
-          39.43      , -121.22      ],
-       [   1.8672    ,   18.        ,    5.32951289, ...,    2.12320917,
-          39.43      , -121.32      ],
-       [   2.3886    ,   16.        ,    5.25471698, ...,    2.61698113,
-          39.37      , -121.24      ]])
+  Source       date  anomalies  year  month
+0   gcag 1850-01-01    -0.6746  1850      1
+1   gcag 1850-02-01    -0.3334  1850      2
+2   gcag 1850-03-01    -0.5913  1850      3
+3   gcag 1850-04-01    -0.5887  1850      4
+4   gcag 1850-05-01    -0.5088  1850      5
 ~~~
 {: .output}
+
+Defining a list of column names—'month', 'year', and 'anomalies' that are intended to be retained from the original DataFrame df. The line df = df[columns] filters the DataFrame to include only these specified columns, effectively discarding any other columns that may have been present. Finally, the method df.head() is called to display the first few rows of the modified DataFrame, allowing for a quick inspection of the data structure and contents after the filtering operation. 
 
 
 When training on a machine that has a GPU, you need to tell PyTorch you want to use it • You’ll see the following at the top of most PyTorch code:
