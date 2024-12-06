@@ -491,7 +491,7 @@ model(inp)
 - `out_features=5`: Specifies that the output from this layer will have 5 features.
 bias=True: Indicates that the layer will include a bias term (which is often included in linear layers).
 - `model(inp)`: This line performs a forward pass through the model using the input tensor inp. The model applies a linear transformation to the input data as
-\\[y=x\timesw+b$ \\]
+\\[y=x \times w + b \\]
 
 ~~~
 tensor([[-0.4799, -0.3322, -1.4966,  0.1146,  1.5843]],
