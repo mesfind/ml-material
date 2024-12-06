@@ -466,7 +466,11 @@ df_test = df.iloc[train_size:]
 # Generate sliding windows for training data
 swg_train = SlidingWindow(input_width=5, label_width=1, offset=1, df=df_train, label_columns=['co2'])
 X_train, y_train, train_dates = swg_train.sliding_windows()
+~~~
+{: .python}
 
+
+~~~
 # Generate sliding windows for testing data
 swg_test = SlidingWindow(input_width=5, label_width=1, offset=1, df=df_test, label_columns=['co2'])
 X_test, y_test, test_dates = swg_test.sliding_windows()
@@ -491,9 +495,6 @@ X_test, y_test = torch.Tensor(X_test), torch.Tensor(y_test)
 assert not set(train_dates.flatten()).intersection(set(test_dates.flatten())), "Data leakage detected!"
 ~~~
 {: .python}
-
-
-
 
 The arrays `X` and `y` store these windows and targets, respectively, and are converted to NumPy arrays for efficient computation.
 
