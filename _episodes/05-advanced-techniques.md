@@ -369,46 +369,72 @@ In the remainder of this section, we define a `sliding_windows` class. This clas
 The sliding window generator class is crucial for preparing data for time series forecasting. The code below demonstrates its implementation:
 
 ~~~
-# Sliding window generation class
-class SlidingWindowGenerator:
-    def __init__(self, seq_length, label_width, shift, df, label_columns=None, dropnan=True):
+# Define the SlidingWindow class
+class SlidingWindow:
+    def __init__(self, input_width, label_width, offset, df, label_columns=None, dropnan=True):
+        """
+        Initialize the SlidingWindow class for creating input-output windows for time series data.
+
+        Args:
+            input_width (int): Number of timesteps for input features.
+            label_width (int): Number of timesteps for labels (multi-step prediction).
+            offset (int): Offset between input end and label start.
+            df (pd.DataFrame): Dataframe containing time series data.
+            label_columns (list, optional): Columns to use as labels. Default is None.
+            dropnan (bool, optional): Whether to drop windows with NaN values. Default is True.
+        """
         self.df = df
         self.label_columns = label_columns
         self.dropnan = dropnan
+        
         if label_columns is not None:
             self.label_columns_indices = {name: i for i, name in enumerate(label_columns)}
+        
         self.column_indices = {name: i for i, name in enumerate(df.columns)}
-        self.seq_length = seq_length
+        self.input_width = input_width
         self.label_width = label_width
-        self.shift = shift
-        self.total_window_size = seq_length + shift
-        self.input_slice = slice(0, seq_length)
-        self.input_indices = np.arange(self.total_window_size)[self.input_slice]
+        self.offset = offset
+        self.total_window_size = input_width + offset + label_width
 
-        self.label_start = self.total_window_size - label_width
-        self.labels_slice = slice(self.label_start, None)
-        self.label_indices = np.arange(self.total_window_size)[self.labels_slice]
-    def __repr__(self):
-        return '\n'.join([
-            f'Total window size: {self.total_window_size}',
-            f'Input indices: {self.input_indices}',
-            f'Label indices: {self.label_indices}',
-            f'Label column name(s): {self.label_columns}'])
+        self.input_slice = slice(0, input_width)
+        self.label_start = input_width + offset
+        self.labels_slice = slice(self.label_start, self.label_start + label_width)
+
     def sliding_windows(self):
+        """
+        Generate sliding windows for inputs and outputs.
+
+        Returns:
+            X (np.ndarray): Input windows of shape (num_samples, input_width, num_features).
+            y (np.ndarray): Label windows of shape (num_samples, label_width).
+            date_indices (np.ndarray): Corresponding date indices for each window.
+        """
         data = self.df.values
-        X, y = [], []
+        dates = self.df.index.values
+        
+        X, y, date_indices = [], [], []
         for i in range(len(data) - self.total_window_size + 1):
-            input_window = data[i:i + self.seq_length]
-            label_window = data[i + self.seq_length:i + self.total_window_size]
+            input_window = data[i:i + self.input_width]
+            label_window = data[i + self.label_start:i + self.label_start + self.label_width]
             X.append(input_window)
-            if self.label_columns is not None:
-                label_window = label_window[:, [self.column_indices[name] for name in self.label_columns]]
+            
+            if self.label_columns:
+                if len(self.label_columns) > 1:
+                    label_window = label_window[:, [self.column_indices[name] for name in self.label_columns]]
+                else:
+                    label_window = label_window[:, 0]
+            
             y.append(label_window)
+            date_indices.append(dates[i:i + self.total_window_size])
+        
         X, y = np.array(X), np.array(y)
         if self.dropnan:
-            X = X[~np.isnan(X).any(axis=(1, 2))]
-            y = y[~np.isnan(y).any(axis=(1, 2))]
-        return X, y.reshape(-1,1)
+            valid_mask = ~np.isnan(X).any(axis=(1, 2)) & ~np.isnan(y).any(axis=1)
+            X = X[valid_mask]
+            y = y[valid_mask]
+            date_indices = np.array(date_indices)[valid_mask]
+        
+        return X, y, date_indices
 ~~~
 {: .python}
 
@@ -432,17 +458,41 @@ Label column name(s): ['co2']
 
 
 ~~~
-# Generate windows
-X, y = swg.sliding_windows()
-X.shape, y.shape
+# Split data into train and test sets based on temporal order
+train_size = int(len(df) * 0.7)  # 70% training, 30% testing
+df_train = df.iloc[:train_size]
+df_test = df.iloc[train_size:]
+
+# Generate sliding windows for training data
+swg_train = SlidingWindow(input_width=5, label_width=1, offset=1, df=df_train, label_columns=['co2'])
+X_train, y_train, train_dates = swg_train.sliding_windows()
+
+# Generate sliding windows for testing data
+swg_test = SlidingWindow(input_width=5, label_width=1, offset=1, df=df_test, label_columns=['co2'])
+X_test, y_test, test_dates = swg_test.sliding_windows()
+
+# Normalize data separately for train and test
+scaler_X = StandardScaler()
+scaler_y = StandardScaler()
+
+# Normalize training data
+X_train = scaler_X.fit_transform(X_train.reshape(-1, X_train.shape[-1])).reshape(X_train.shape)
+y_train = scaler_y.fit_transform(y_train)
+
+# Normalize testing data
+X_test = scaler_X.transform(X_test.reshape(-1, X_test.shape[-1])).reshape(X_test.shape)
+y_test = scaler_y.transform(y_test)
+
+# Convert to PyTorch tensors
+X_train, y_train = torch.Tensor(X_train), torch.Tensor(y_train)
+X_test, y_test = torch.Tensor(X_test), torch.Tensor(y_test)
+
+# Validate no data leakage by checking date indices
+assert not set(train_dates.flatten()).intersection(set(test_dates.flatten())), "Data leakage detected!"
 ~~~
 {: .python}
 
 
-~~~
-((2280, 4, 1), (2280, 1))
-~~~
-{: .output}
 
 
 The arrays `X` and `y` store these windows and targets, respectively, and are converted to NumPy arrays for efficient computation.
