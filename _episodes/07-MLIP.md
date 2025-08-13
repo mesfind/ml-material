@@ -149,3 +149,5 @@ print(f"The PBE band gap for STO from Materials Project is {sto_dft_bandgap:.2f}
 
 ~~~
 {: .python}
+
+Again, you can see that using the unrelaxed SrTiO3 leads to large errors, predicting SrTiO3 to have very small band agps. Using the relaxed STO leads to predictions that are much closer to expectations. In particular, the predicted PBE band gap is quite close to the Materials Project PBE value. The experimental band gap is around 3.2 eV, which is reproduced very well by the GLLB-SC predict
