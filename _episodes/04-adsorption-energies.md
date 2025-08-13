@@ -327,9 +327,8 @@ Hjorth Larsen A, et al. The atomic simulation environment—a Python library for
 
 ## Acknowledgments
 
-This work uses the OC22 dataset and UMA model from the Open Catalyst Project. The dataset and baseline models are open sourced at [https://github.com/facebookresearch/fairchem](https://github.com/facebookresearch/fairchem). A public leaderboard is available to benchmark future models.
+- This work uses the OC22 dataset and UMA model from the Open Catalyst Project. 
 
-
-**Dataset**: [OC22 on arXiv](https://arxiv.org/abs/2206.08917) 
+- **Dataset**: [OC22 on arXiv](https://arxiv.org/abs/2206.08917) 
 
 
