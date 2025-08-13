@@ -31,7 +31,7 @@ Do not install packages into the base Conda environment — create one per proje
 ### Creating a Conda Environment for Materials Science ML (Linux/MacOS)
 
 ```bash
-conda create --name MatGNN python=3.10
+conda create --name MatGNN python=3.12
 conda activate MatGNN
 ```
 
@@ -72,7 +72,7 @@ conda env remove --name MatGNN
 ```bash
 python3 -m venv MatGNN
 source MatGNN/bin/activate
-pip install matminer fairchem megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab
+pip install torch pymatgen matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 **Windows PowerShell**
@@ -80,7 +80,7 @@ pip install matminer fairchem megnet m3gnet chgnet mp-api numpy pandas scikit-le
 ```powershell
 python -m venv MatGNN
 MatGNN\Scripts\activate
-pip install matminer fairchem megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab
+pip install torch pymatgen matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 Deactivate with:
