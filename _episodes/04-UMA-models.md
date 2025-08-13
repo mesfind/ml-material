@@ -80,7 +80,8 @@ Models are referenced by their name, below are the currently supported models:
 - **omc:** use this for molecular crystals
 
 #### Relax an adsorbate on a catalytic surface,
-```python
+
+~~~
 from ase.build import fcc100, add_adsorbate, molecule
 from ase.optimize import LBFGS
 from fairchem.core import pretrained_mlip, FAIRChemCalculator
@@ -98,10 +99,12 @@ slab.calc = calc
 # Set up LBFGS dynamics object
 opt = LBFGS(slab)
 opt.run(0.05, 100)
-```
+~~~
+{: .python}
 
 #### Relax an inorganic crystal,
-```python
+
+~~~
 from ase.build import bulk
 from ase.optimize import FIRE
 from ase.filters import FrechetCellFilter
@@ -115,10 +118,13 @@ atoms.calc = calc
 
 opt = LBFGS(FrechetCellFilter(atoms))
 opt.run(0.05, 100)
-```
+~~~
+{: .python}
+
 
 #### Run molecular MD,
-```python
+
+~~~
 from ase import units
 from ase.io import Trajectory
 from ase.md.langevin import Langevin
@@ -140,10 +146,13 @@ dyn = Langevin(
 trajectory = Trajectory("my_md.traj", "w", atoms)
 dyn.attach(trajectory.write, interval=1)
 dyn.run(steps=1000)
-```
+~~~
+{: .python}
 
 #### Calculate a spin gap,
-```python
+
+
+~~~
 from ase.build import molecule
 from fairchem.core import pretrained_mlip, FAIRChemCalculator
 import matplotlib.pyplot as plt
@@ -193,4 +202,5 @@ plt.ylabel("Energy (eV)")
 plt.title("CH₂ Singlet vs Triplet Energies")
 plt.tight_layout()
 plt.show()
-```
+~~~
+{: .python}
