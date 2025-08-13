@@ -75,8 +75,12 @@ make
 {: .bash}
 
 
-(Alternatively, instead of setting the F90 environmental variable first, you may just specify the variable during the make: make F90=gfortran.)
+(Alternatively, instead of setting the F90 environmental variable first, you may just specify the variable during the make: 
 
+~~~
+$ make F90=gfortran.)
+~~~
+{: .bash}
 Next, make the enumeration library itself
 ~~~
 $ cd ../../src
@@ -85,12 +89,16 @@ $ make
 {: .bash}
 
 Finally, to make a stand-alone executable for enumeration:
+~~~
 make enum.x
-
+~~~
+{: .bash}
 It is possible to compile enumlib using conda on OSX and Linux. To do so use the command:
 
-conda install --channel matsci enumlib
-
+~~~
+$ conda install --channel matsci enumlib
+~~~
+{: .bash}
 
 ## HyDGL
 ~~~
