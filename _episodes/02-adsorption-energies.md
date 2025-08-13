@@ -5,12 +5,12 @@ exercises: 0
 questions:
   - "How do I process NetCDF or trajectory data?"
 objectives:
-  - Understand xarray basics and capabilities.
-  - Load and manipulate data using xarray.
-  - Perform data processing and visualization tasks.
-  - Integrate xarray with other libraries.
-  - Optimize data processing pipelines.
-  - Explore best practices for data visualization.
+  - Understand the concept of adsorption energies and their role in catalysis.
+  - Use pretrained machine learning models (e.g., UMA) from the Open Catalyst Project to predict total energies.
+  - Compute adsorption energies using reference thermodynamic cycles.
+  - Build and relax adsorbate-slab systems using ASE and ML-based force calculators.
+  - Analyze trends in adsorption energies across different metals and adsorption sites.
+  - Evaluate model predictions against DFT and literature results.
 ---
 
 # Adsorption Energies in Computational Catalysis
