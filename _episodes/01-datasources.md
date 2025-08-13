@@ -64,34 +64,20 @@ with MPRester("your_api_key_here") as mpr:
     bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
 ~~~
 
-## 2) The Open Molecules 2025 (OMol25)
+## 2) OMol25
 
-  - The CPC Global Unified Gauge-Based Analysis of Daily Precipitation is a comprehensive dataset developed by the **Climate Prediction Center (CPC)** of the **National Oceanic and Atmospheric Administration (NOAA)** by taking advantage of the **optimal interpolation (OI)** (> 30,000 gauges (optimal interp. with orographic effects).
+The Open Molecules 2025 (OMol25) dataset contains over 100 million single point calculations of non-equilibrium structures and
+structural relaxations across a wide swath of organic and inorganic molecular space, including things like transition metal complexes and electrolytes. The dataset contains structures labeled with total energy (eV) and forces (eV/A) via ORCA6. A much larger amount of electronic structure data were also stored during generation and we hope to make these available to the community (reach out via github issue). 
 
-  - This dataset provides **global daily** precipitation estimates based on **gauge observations**, offering valuable insights for various applications in **climate research**, **hydrology**, and **weather forecasting**.
+All information about the dataset is available at the [OMol25 HuggingFace site](https://huggingface.co/facebook/OMol25). If you have issues with the gated model request form, please reach out via a github issue on this repository.  
 
-   - **Temporal Coverage/Duration**: 1979/01/01 to Present. 
+## Dataset format 
 
-   - **Time Step**: Daily, Monthly
+The dataset is provided in ASE DB compatible lmdb files (*.aselmdb). The dataset contains labels of the total charge and spin multiplicity, saved in the `atoms.info` dictionary because ASE does not support these as default properties. 
 
-   - **Spatial Resolution**: 0.5x0.5 deg
+## Level of theory
 
-   - **Missing data**:  flagged with a value of -9.96921e+36f.
-
-   - **Source**: https://psl.noaa.gov/data/gridded/data.cpc.globalprecip.html
-
-**Key Strengths**: 
-
-  - High station density
-
-**Key Limitations**: 
-
-  - Quality of the gauge-based analysis is poor over tropical Africa and Antarctica (gauge network density).
-
-### Downloading CPC Data  
- - [Jupyter Note Book Script](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/CPC_global_daily_Precip.ipynb)
-
----
+OMol25 was calculated at the wB97M-V/def2-TZVPD level, including non-local dispersion, as defined in ORCA6. To reproduce the calculations, please `fairchem.data.om.omdata.orca.calc` to write compatible ORCA inputs. 
 
 ## 3) OMat24
 
