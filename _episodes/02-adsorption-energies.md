@@ -150,6 +150,8 @@ atomic_reference_energies = {
 ```bash
 # Option 1: CLI login
 ! huggingface-cli login
+```
+```python
 # Option 2: Environment variable
 import os
 os.environ["HF_TOKEN"] = "your_hf_token_here"
