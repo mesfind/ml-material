@@ -19,7 +19,7 @@ keypoints:
 </script>
 
 
-# Universal Models for Atoms
+# [Universal Models for Atoms](https://scontent.fadd2-1.fna.fbcdn.net/v/t39.2365-6/520537587_1080318074038402_8373516189142708029_n.pdf?_nc_cat=107&ccb=1-7&_nc_sid=3c67a6&_nc_ohc=l3xnwGRFsiIQ7kNvwGUMPLJ&_nc_oc=AdlRoyzTvLWzR5bSr4XHrR9I6fDTrGDfNvRrsGmYNM_VyykCJ41NtSpjJwNd3zZIp3Q&_nc_zt=14&_nc_ht=scontent.fadd2-1.fna&_nc_gid=HYvFYrfUd_ygtu9uY0AGlA&oh=00_AfU2wH8TNYOr6WHx1XnAGlymbw7rxmV0LGF2F-fxT_tLOg&oe=68A27139)
 
 [UMA](https://ai.meta.com/research/publications/uma-a-family-of-universal-models-for-atoms/) is an equivariant GNN that leverages a novel technique called Mixture of Linear Experts (MoLE) to give it the capacity to learn the largest multi-modal dataset to date (500M DFT examples), while preserving energy conservation and inference speed. Even a 6M active parameter (145M total) UMA model is able to acheieve SOTA accuracy on a wide range of domains such as materials, molecules and catalysis. 
 
