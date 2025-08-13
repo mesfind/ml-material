@@ -110,12 +110,13 @@ pip3 install pymatgen matminer fairchem-core m3gnet matgl chgnet mp-api describe
 3. **Verify installation**
 
 ```python
+import pymatgen
 import matminer
-import fairchem
-import megnet
+import fairchem.core
 import m3gnet
 import chgnet
 import mp_api
+import describe
 print("Libraries loaded successfully")
 ```
 
