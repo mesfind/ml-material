@@ -1,5 +1,5 @@
 ---
-title: Computing Adsorption Energies with Machine Learning: A Tutorial Using OC22 and UMA
+title: Adsorption Energies 
 teaching: 1
 exercises: 0
 questions:
