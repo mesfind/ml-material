@@ -1,5 +1,5 @@
 ---
-title: Data Sources for Machine Learning in Materials Science
+title: Data Sources
 teaching: 1
 exercises: 0
 questions:
