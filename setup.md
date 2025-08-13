@@ -100,6 +100,13 @@ $ conda install --channel matsci enumlib
 ~~~
 {: .bash}
 
+
+Alternatively you would like to use the enumeration capabilities powered by Gus Hart’s enumlib or perform Bader charge analysis powered by the Bader analysis code of the Henkelmann group, please try installing these from source using the pmg command line tool as follows::
+~~~
+$ pmg config --install enumlib
+$ pmg config --install blader 
+~~~
+
 ## HyDGL
 ~~~
 pip install git+https://github.com/hkneiding/HyDGL
@@ -113,4 +120,8 @@ Afterwards you can import the library with:
 import HyDGL
 ~~~
 {: .python
+
+
+
+
 
