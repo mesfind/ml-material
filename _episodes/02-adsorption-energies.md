@@ -147,9 +147,9 @@ atomic_reference_energies = {
    - Log in and request access
    - Generate a token at [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) with **"Read access to public gated repos"**
    - Set the token:
-```bash
+```python
 # Option 1: CLI login
-! huggingface-cli login
+!huggingface-cli login
 ```
 ```python
 # Option 2: Environment variable
