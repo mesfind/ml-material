@@ -75,9 +75,6 @@ We recommend using the **Unified Multimodal Architecture (UMA)** model, trained 
 > - Fine-tuning GemNet-OC on **both OC20 and OC22** improves energy predictions by **~36%**.
 > - Joint training improves **total energy prediction on OC20 by ~19%** and **force prediction on OC22 by ~9%**.
 
-Public leaderboard and baseline models: [Open Catalyst Project GitHub](https://github.com/facebookresearch/fairchem)
-
-
 ## Introduction to Adsorption Energies
 
 To compute adsorption energies using OCP models, follow a workflow analogous to DFT:
