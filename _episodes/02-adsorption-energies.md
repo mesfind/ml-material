@@ -139,7 +139,7 @@ atomic_reference_energies = {
 :class: dropdown
 
 1. Install required packages:
-```{code-cell} ipython3
+```python
 ! pip install fairchem-core fairchem-data-oc fairchem-applications-cattsunami
 ```
 
@@ -207,7 +207,7 @@ print(f"Adsorption energy: {ads_energy:.3f} eV")
 ```
 
 Visualize:
-```{code-cell}
+```python
 import matplotlib.pyplot as plt
 from ase.visualize.plot import plot_atoms
 
@@ -248,7 +248,7 @@ Xu, Z., & Kitchin, J. R. (2014). *J. Phys. Chem. C*, 118(44), 25597–25602. [DO
 
 We compare O adsorption in fcc and hcp sites across late transition metals (Cu, Ag, Pd, Pt, Rh, Ir) at 0.25 ML coverage.
 
-```{code-cell}
+```python
 import json
 
 with open("energies.json") as f:
@@ -259,7 +259,7 @@ with open("structures.json") as f:
 sfcc = sdata["Pt"]["O"]["fcc"]["0.25"]
 ```
 
-```{code-cell}
+```python
 from ase import Atoms
 
 adslab = Atoms(sfcc["symbols"], positions=sfcc["pos"], cell=sfcc["cell"], pbc=True)
