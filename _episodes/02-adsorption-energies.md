@@ -25,7 +25,6 @@ One of the most common tasks in computational catalysis is calculating **binding
 
 In this guide, we use machine learning (ML) models trained on the **Open Catalyst Project (OCP)** datasets—specifically **OC20** and **OC22**—to predict adsorption energies efficiently and accurately.
 
----
 
 ## Open Catalyst 2022 (OC22) Dataset
 
@@ -41,7 +40,6 @@ OC22 enables generalized total energy prediction tasks beyond just adsorption en
 For more details, see:  
 [Shuaibi et al., *The Open Catalyst 2022 (OC22) Dataset and Challenges for Oxide Electrocatalysts*, arXiv:2206.08917 (2022)](https://arxiv.org/abs/2206.08917)
 
----
 
 ## Pretrained Models
 
@@ -61,7 +59,6 @@ We recommend using the **Unified Multimodal Architecture (UMA)** model, trained 
    - Molecular dynamics simulations
 5. Likely to receive future updates and improvements
 
----
 
 ### S2EF-Total Energy Models (OC22)
 
@@ -80,7 +77,6 @@ We recommend using the **Unified Multimodal Architecture (UMA)** model, trained 
 
 Public leaderboard and baseline models: [Open Catalyst Project GitHub](https://github.com/facebookresearch/fairchem)
 
----
 
 ## Introduction to Adsorption Energies
 
@@ -95,7 +91,6 @@ To compute adsorption energies using OCP models, follow a workflow analogous to 
 
 In this guide, we use the **UMA-S-1** model with the **OC20 task**, which returns **total energies at RPBE level**, allowing flexible post-processing.
 
----
 
 ### Reference Schemes for Adsorption Energies
 
@@ -112,8 +107,16 @@ $$
 $$
 
 Using known thermochemistry:
-- $ \text{H}_2 + \frac{1}{2}\text{O}_2 \rightarrow \text{H}_2\text{O} \quad \Delta H = -3.03\,\text{eV} $ (experimental)
-- $ \text{O} \rightarrow \frac{1}{2}\text{O}_2 \quad \Delta H = -2.58\,\text{eV} $ (dissociation energy)
+
+- Formation of water from hydrogen and oxygen (experimental enthalpy change):
+$$
+\mathrm{H}_2 + \frac{1}{2}\mathrm{O}_2 \rightarrow \mathrm{H}_2\mathrm{O} \quad \Delta H = -3.03\, \text{eV}
+$$
+
+- Dissociation of atomic oxygen into half a molecule of oxygen gas (with given dissociation energy):
+$$
+\mathrm{O} \rightarrow \frac{1}{2} \mathrm{O}_2 \quad \Delta H = -2.58\, \text{eV}
+$$
 
 Then the atomic oxygen adsorption energy is:
 
@@ -122,6 +125,7 @@ $$
 $$
 
 Atomic reference energies (from OC20):
+
 ```python
 atomic_reference_energies = {
     "H": -3.477,  # eV
@@ -131,16 +135,14 @@ atomic_reference_energies = {
 }
 ```
 
----
 
 ### Setup: Install and Access UMA Model
 
-```{admonition} Need help installing packages or getting access to UMA?
-:class: dropdown
+ Need help installing packages or getting access to UMA?
 
 1. Install required packages:
 ```python
-! pip install fairchem-core fairchem-data-oc fairchem-applications-cattsunami
+!pip install fairchem-core fairchem-data-oc fairchem-applications-cattsunami
 ```
 
 2. Request access to the gated Hugging Face model:
@@ -151,14 +153,13 @@ atomic_reference_energies = {
 ```bash
 # Option 1: CLI login
 ! huggingface-cli login
-
 # Option 2: Environment variable
 import os
 os.environ["HF_TOKEN"] = "your_hf_token_here"
 ```
 
 Load the UMA model:
-```bash
+```python
 from __future__ import annotations
 from fairchem.core import FAIRChemCalculator, pretrained_mlip
 
