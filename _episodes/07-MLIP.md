@@ -198,3 +198,48 @@ Sites (8)
   7  O2-   0    0.5  0.639176
 ~~~
 {: .output}
+
+Define the model to predict energy, forces, stress and magmon
+
+~~~
+from chgnet.model import CHGNet
+chgnet = CHGNet.load()
+# Alternatively you can read your own model
+# chgnet = CHGNet.from_file(model_path)
+prediction = chgnet.predict_structure(structure)
+
+for key, unit in [
+    ("energy", "eV/atom"),
+    ("forces", "eV/A"),
+    ("stress", "GPa"),
+    ("magmom", "mu_B"),
+]:
+    print(f"CHGNet-predicted {key} ({unit}):\n{prediction[key[0]]}\n")
+~~~
+{: .python}
+
+~~~
+CHGNet v0.3.0 initialized with 412,525 parameters
+CHGNet will run on mps
+CHGNet-predicted energy (eV/atom):
+-7.3676910400390625
+
+CHGNet-predicted forces (eV/A):
+[[ 0.     -0.      0.0238]
+ [ 0.      0.     -0.0238]
+ [-0.      0.      0.0926]
+ [-0.      0.     -0.0926]
+ [-0.      0.     -0.0024]
+ [-0.     -0.     -0.0131]
+ [ 0.      0.      0.0131]
+ [-0.      0.      0.0024]]
+
+CHGNet-predicted stress (GPa):
+[[-0.3041  0.     -0.    ]
+ [ 0.      0.2232 -0.    ]
+ [-0.     -0.     -0.1073]]
+
+CHGNet-predicted magmom (mu_B):
+[0.003  0.003  3.8694 3.8694 0.0441 0.0386 0.0386 0.0441]
+~~~
+{: .output}
