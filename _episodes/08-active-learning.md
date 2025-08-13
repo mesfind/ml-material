@@ -27,7 +27,7 @@ Active learning is a data acquisition approach where the algorithm actively coll
 ## Derivative structure enumeration
 
 ~~~
-from pymatgen import Structure
+from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.transformations.advanced_transformations import EnumerateStructureTransformation
 from chgnet.model import CHGNet
@@ -79,3 +79,7 @@ print(f"Energy range: {energies.min():.4f} — {energies.max():.4f} eV/atom")
 print(f"Average energy: {energies.mean():.4f} eV/atom")
 ~~~
 {: .python}
+
+~~~
+~~~
+{: .output}
