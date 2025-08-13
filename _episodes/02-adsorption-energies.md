@@ -15,9 +15,7 @@ objectives:
 ---
 
 <!-- MathJax -->
-
 <script type="text/javascript"
-
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 
 </script>
@@ -34,7 +32,7 @@ In this tutorial, we use the **Unified Multimodal Architecture (UMA)** model, tr
 
 We also perform convergence studies and compare our results to published DFT data.
 
----
+
 
 ## Setting Up the Environment
 
@@ -78,7 +76,7 @@ calc = FAIRChemCalculator(predictor, task_name="oc20")
 
 This model predicts **RPBE-level total energies**, allowing us to compute adsorption energies using thermodynamic cycles.
 
----
+
 
 ## Computing Oxygen Adsorption on Pt(111)
 
@@ -111,8 +109,15 @@ adslab_e = adslab.get_potential_energy()
 
 To compute the adsorption energy, we must define a reference state for atomic oxygen. DFT performs poorly on gas-phase O₂, so we use a thermochemical cycle based on water formation
 
-- H₂ + ½O₂ → H₂O  ΔH = -3.03 eV (experimental)
-- O → ½O₂  ΔH = -2.58 eV (dissociation energy)
+- Formation of water from hydrogen and oxygen (experimental enthalpy change):
+$$
+\mathrm{H}_2 + \frac{1}{2}\mathrm{O}_2 \rightarrow \mathrm{H}_2\mathrm{O} \quad \Delta H = -3.03\, \text{eV}
+$$
+
+- Dissociation of atomic oxygen into half a molecule of oxygen gas (with given dissociation energy):
+$$
+\mathrm{O} \rightarrow \frac{1}{2} \mathrm{O}_2 \quad \Delta H = -2.58\, \text{eV}
+$$
 
 We also use atomic reference energies from the OC20 dataset
 
