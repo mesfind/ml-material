@@ -52,13 +52,15 @@ Key points about the `mp_api` usage:
 - Uses the `MPRester` class for all API interactions
 
 Example to retrieve a material's structure:
-```python
+
+~~~
 from mp_api.client import MPRester
 
 with MPRester("your_api_key_here") as mpr:
     structure = mpr.get_structure_by_material_id("mp-1234")
     bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
-```
+~~~
+{: .pythno}
 
 ## 2) OMol25 (Open Molecules 2025)
 
@@ -78,9 +80,11 @@ All information about the dataset is available at the [OMol25 HuggingFace site](
 
 ### Calculation Details
 To reproduce the calculations:
-```python
+
+~~~
 from fairchem.data.om.omdata.orca import calc  # For writing compatible ORCA inputs
-```
+~~~
+{: .python}
 
 ## 3) OMat24 (Open Materials 2024)
 
@@ -129,7 +133,8 @@ A Matbench-Discovery compliant version of Alexandria dataset:
 | sAlex | val | 553,218 | 408 MB | [val.tar.gz](...) |
 
 ### Data Access Example
-```python
+
+~~~
 from fairchem.core.datasets import AseDBDataset
 
 # Load single subdataset
@@ -144,7 +149,8 @@ dataset = AseDBDataset(config={
         "/path/to/omat24/train/rattled-1000-subsampled"
     ]
 })
-```
+~~~
+{: .python}
 
 ## 4) OMC25 (Open Molecular Crystals 2025)
 
