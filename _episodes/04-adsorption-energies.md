@@ -12,6 +12,13 @@ objectives:
   - Analyze trends in oxygen adsorption across late transition metals
   - Perform convergence tests for slab thickness and relaxation depth
   - Evaluate model predictions against DFT and literature data
+keypoints:
+  - Oxide electrocatalysts are critical for the oxygen evolution reaction (OER), but lack sufficient training data for machine learning (ML) models.
+  - Existing datasets like OC20 focus primarily on metallic catalysts and adsorption energies.
+  - OC22 fills this gap by providing a large-scale dataset for oxide materials.
+  - Several graph neural networks (GNNs) were tested, including GemNet-OC, GemNet-dT, SpinConv, Equiformer
+  - The OC22 dataset is a major step toward ML-driven discovery of oxide electrocatalysts.
+  -  By shifting from adsorption-energy-specific tasks to generalized total energy prediction, it enables broader scientific applications and better model generalization, especially when combined with prior datasets like OC20.
 ---
 
 <!-- MathJax -->
