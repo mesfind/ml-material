@@ -1,7 +1,7 @@
 ---
 title: Computing Adsorption Energies with Machine Learning: A Tutorial Using OC22 and UMA
-teaching: 60
-exercises: 30
+teaching: 1
+exercises: 0
 questions:
   - How can machine learning models accelerate adsorption energy calculations
   - What are the best practices for computing reliable adsorption energies using ML
