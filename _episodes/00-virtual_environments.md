@@ -39,7 +39,7 @@ conda activate MatML
 
 ```bash
 conda install numpy pandas scikit-learn matplotlib seaborn jupyterlab
-pip install matminer fairchem megnet m3gnet chgnet mp-api
+pip3 install torch torchvision pymatgen ase matminer  fairchem-core fairchem-data-oc fairchem-applications-cattsunami x3dase  m3gnet matgl chgnet mp-api 
 ```
 
 ### Exporting and Sharing Environments
@@ -72,7 +72,7 @@ conda env remove --name MatML
 ```bash
 python3 -m venv MatML
 source MatGNN/bin/activate
-pip install torch pymatgen ase matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip3 install torch torchvision pymatgen ase matminer  fairchem-core fairchem-data-oc fairchem-applications-cattsunami x3dase  m3gnet matgl chgnet mp-api describe numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 **Windows PowerShell**
@@ -80,7 +80,7 @@ pip install torch pymatgen ase matminer fairchem-core  m3gnet matglchgnet mp-api
 ```powershell
 python -m venv MatML
 MatGNN\Scripts\activate
-pip install torch pymatgen ase matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip3 install torch torchvision pymatgen ase matminer  fairchem-core fairchem-data-oc fairchem-applications-cattsunami x3dase  m3gnet matgl chgnet mp-api describe numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 Deactivate with:
@@ -104,7 +104,7 @@ conda activate MatML
 
 ```powershell
 conda install numpy pandas scikit-learn matplotlib seaborn jupyterlab
-pip3 install pymatgen ase matminer fairchem-core m3gnet matgl chgnet mp-api describe
+pip3 install torch torchvision pymatgen ase matminer  fairchem-core fairchem-data-oc fairchem-applications-cattsunami x3dase  m3gnet matgl chgnet mp-api describe
 ```
 
 3. **Verify installation**
@@ -160,13 +160,17 @@ dependencies:
       - ase
       - matminer
       - fairchem-core
+      - fairchem-data-oc
+      - fairchem-applications-cattsunami
+      - x3dase
       - m3gnet
       - matgl
       - chgnet
       - mp-api
+      - describe
 ```
 
-pip install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip3 install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api describe numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 
 You can create this environment directly with:
 
