@@ -72,7 +72,7 @@ conda env remove --name MatGNN
 ```bash
 python3 -m venv MatGNN
 source MatGNN/bin/activate
-pip install torch pymatgen matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 **Windows PowerShell**
@@ -96,7 +96,7 @@ deactivate
 1. **Create and activate environment**
 
 ```powershell
-conda create --name MatGNN python=3.10
+conda create --name MatGNN python=3.12
 conda activate MatGNN
 ```
 
@@ -104,7 +104,7 @@ conda activate MatGNN
 
 ```powershell
 conda install numpy pandas scikit-learn matplotlib seaborn jupyterlab
-pip install matminer fairchem megnet m3gnet chgnet mp-api
+pip3 install pymatgen matminer fairchem-core m3gnet matgl chgnet mp-api describe
 ```
 
 3. **Verify installation**
@@ -143,7 +143,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.10
+  - python=3.12
   - numpy
   - pandas
   - scikit-learn
@@ -151,16 +151,21 @@ dependencies:
   - seaborn
   - jupyterlab
   - pip
-  - pip:
+  - pip3:
+      - torch
+      - torchvision
+      - pymatgen
       - matminer
-      - fairchem
-      - megnet
+      - fairchem-core
       - m3gnet
+      - matgl
       - chgnet
       - mp-api
 ```
 
-Participants can create this environment directly with:
+pip install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+
+You can create this environment directly with:
 
 ```bash
 conda env create --file MatGNN.yaml
