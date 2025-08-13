@@ -80,3 +80,72 @@ sto = Structure.from_spacegroup(
 print(sto)
 ~~~
 {: .python}
+
+As a ground truth reference, we will also obtain the Materials Project DFT calculated SrTiO3 structure (mpid: mp-???) using pymatgen's interface to the Materials API.
+
+~~~
+mpr = MPRester()
+doc = mpr.summary.search(material_ids=["mp-5229"])[0]
+sto_dft = doc.structure
+sto_dft_bandgap = doc.band_gap
+sto_dft_forme = doc.formation_energy_per_atom
+~~~
+{: .python}
+
+## Relaxing the crystal
+
+~~~
+pot = matgl.load_model("M3GNet-MP-2021.2.8-PES")
+
+relaxer = Relaxer(potential=pot)
+relax_results = relaxer.relax(sto, fmax=0.01)
+relaxed_sto = relax_results["final_structure"]
+print(relaxed_sto)
+~~~
+{: .python}
+
+You can compare the lattice parameter with the DFT one from MP. Quite clearly, the M3GNet universal potential does a reasonably good job on relaxing STO.
+
+~~~
+print(sto_dft)
+~~~
+{: .python}
+
+## Formation energy prediction
+
+To demonstrate the difference between making predictions with a unrelaxed vs a relaxed crystal, we will load the M3GNet formation energy model.
+
+~~~
+# Load the pre-trained MEGNet formation energy model.
+model = matgl.load_model("M3GNet-MP-2018.6.1-Eform")
+eform_sto = model.predict_structure(sto)
+eform_relaxed_sto = model.predict_structure(relaxed_sto)
+
+print(f"The predicted formation energy for the unrelaxed SrTiO3 is {float(eform_sto):.3f} eV/atom.")
+print(f"The predicted formation energy for the relaxed SrTiO3 is {float(eform_relaxed_sto):.3f} eV/atom.")
+print(f"The Materials Project formation energy for DFT-relaxed SrTiO3 is {sto_dft_forme:.3f} eV/atom.")
+~~~
+{: .python}
+
+The predicted formation energy from the M3GNet relaxed STO is in fairly good agreement with the DFT value.
+
+## Band gap prediction
+
+We will repeat the above exericse but for the band gap.
+
+~~~
+model = matgl.load_model("MEGNet-MP-2019.4.1-BandGap-mfi")
+
+# For multi-fidelity models, we need to define graph label ("0": PBE, "1": GLLB-SC, "2": HSE, "3": SCAN)
+for i, method in ((0, "PBE"), (1, "GLLB-SC"), (2, "HSE"), (3, "SCAN")):
+    graph_attrs = torch.tensor([i])
+    bandgap_sto = model.predict_structure(structure=sto, state_attr=graph_attrs)
+    bandgap_relaxed_sto = model.predict_structure(structure=relaxed_sto, state_attr=graph_attrs)
+
+    print(f"{method} band gap")
+    print(f"\tUnrelaxed STO = {float(bandgap_sto):.2f} eV.")
+    print(f"\tRelaxed STO = {float(bandgap_relaxed_sto):.2f} eV.")
+print(f"The PBE band gap for STO from Materials Project is {sto_dft_bandgap:.2f} eV.")
+
+~~~
+{: .python
