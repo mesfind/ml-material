@@ -1,106 +1,134 @@
----
----
-
 //----------------------------------------
-// Colors.
+// Variables
 //----------------------------------------
 
-// branding
-$color-brand:       #2b3990 !default;
+// Color Palette
+$colors: (
+  // Branding
+  brand:       #2b3990,
+  
+  // Code boxes
+  error:       #bd2c00,
+  output:      #303030,
+  source:      #6e5494,
+  
+  // Blockquotes
+  callout:     #f4fd9c,
+  challenge:   #eec275,
+  checklist:   #dfd2a0,
+  discussion:  #eec275,
+  keypoints:   #7ae78e,
+  objectives:  #daee84,
+  prereq:      #9cd6dc,
+  solution:    #ded4b9,
+  testimonial: #fc8dc1
+);
 
-// code boxes
-$color-error:       #bd2c00 !default;
-$color-output:      #303030 !default;
-$color-source:      #6e5494 !default;
-
-// blockquotes
-$color-callout:     #f4fd9c !default;
-$color-challenge:   #eec275 !default;
-$color-checklist:   #dfd2a0 !default;
-$color-discussion:  #eec275 !default;
-$color-keypoints:   #7ae78e !default;
-$color-objectives:  #daee84 !default;
-$color-prereq:      #9cd6dc !default;
-$color-solution:    #ded4b9 !default;
-$color-testimonial: #fc8dc1 !default;
-
-//----------------------------------------
-// Specialized code blocks.
-//----------------------------------------
-
-@mixin cdSetup($color) {
-  color: $color;
-  border-left: solid 5px $color;
-  margin-bottom: 0px;
+// Create color variables from map
+@each $name, $color in $colors {
+  $color-#{$name}: $color !default;
 }
 
-.error  { @include cdSetup($color-error); }
-.output { @include cdSetup($color-output); }
-.source { @include cdSetup($color-source); }
-
-.bash   { @include cdSetup($color-source); }
-.make   { @include cdSetup($color-source); }
-.matlab { @include cdSetup($color-source); }
-.python { @include cdSetup($color-source); }
-.r      { @include cdSetup($color-source); }
-.sql    { @include cdSetup($color-source); }
-
-//----------------------------------------
-// Specialized blockquote environments for learning objectives, callouts, etc.
-//----------------------------------------
-
+// Spacing
 $codeblock-padding: 5px !default;
+$border-width: 5px !default;
 
-@mixin bkSetup($color, $glyph) {
-
-  $gradientcolor1: $color;
-  $gradientcolor2: scale-color($color, $lightness: 10%);
-
-  padding-left: $codeblock-padding;
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-right: 0;
-  border: 1px solid;
-  border-color: $color;
-  padding-bottom: $codeblock-padding;
-
-  h2 {
-    padding-top: $codeblock-padding;
-    padding-bottom: $codeblock-padding;
-    font-size: 20px;
-    background: linear-gradient(to bottom, $gradientcolor1, $gradientcolor2);
-    border-color: $color;
-    margin-top: 0px;
-    margin-left: -$codeblock-padding; // to move back to the left margin of the enclosing blockquote
-  }
-  h2:before {
-    font-family: 'Glyphicons Halflings';
-    content: $glyph;
-    float: left;
-    padding-left: $codeblock-padding;
-    padding-right: $codeblock-padding;
-    display: inline-block;
-    -webkit-font-smoothing: antialiased;
-  }
-
-}
-
-.callout{ @include bkSetup($color-callout, "\e146"); }
-.challenge{ @include bkSetup($color-challenge, "\270f"); }
-.checklist{ @include bkSetup($color-checklist, "\e067"); }
-.discussion{ @include bkSetup($color-discussion, "\e123"); }
-.keypoints{ @include bkSetup($color-keypoints, "\e101"); }
-.objectives{ @include bkSetup($color-objectives, "\e085"); }
-.prereq{ @include bkSetup($color-prereq, "\e124"); }
-.solution{ @include bkSetup($color-solution, "\e105"); }
-.testimonial{ @include bkSetup($color-testimonial, "\e143"); }
+// Typography
+$font-size-heading: 20px !default;
 
 //----------------------------------------
-// Override Bootstrap settings.
+// Mixins
+//----------------------------------------
+
+/// Setup for code blocks
+/// @param {Color} $color - Border color
+@mixin code-block($color) {
+  color: $color;
+  border-left: solid $border-width $color;
+  margin-bottom: 0;
+}
+
+/// Setup for blockquote environments
+/// @param {Color} $color - Primary color
+/// @param {String} $glyph - Glyphicon character
+@mixin blockquote-style($color, $glyph) {
+  $gradient-color: scale-color($color, $lightness: 10%);
+  
+  padding: 0 $codeblock-padding $codeblock-padding 0;
+  border: 1px solid $color;
+  
+  h2 {
+    padding: $codeblock-padding 0;
+    font-size: $font-size-heading;
+    background: linear-gradient(to bottom, $color, $gradient-color);
+    border-color: $color;
+    margin-top: 0;
+    margin-left: -$codeblock-padding; // Align with blockquote left margin
+    
+    &::before {
+      font-family: 'Glyphicons Halflings';
+      content: $glyph;
+      float: left;
+      padding: 0 $codeblock-padding;
+      display: inline-block;
+      -webkit-font-smoothing: antialiased;
+    }
+  }
+}
+
+//----------------------------------------
+// Code Blocks
+//----------------------------------------
+
+.error, .output, .source {
+  @include code-block($color-source);
+}
+
+// Language-specific code blocks
+$code-languages: bash, make, matlab, python, r, sql;
+
+@each $lang in $code-languages {
+  .#{$lang} {
+    @include code-block($color-source);
+  }
+}
+
+.error {
+  @include code-block($color-error);
+}
+
+.output {
+  @include code-block($color-output);
+}
+
+//----------------------------------------
+// Blockquote Environments
+//----------------------------------------
+
+$blockquotes: (
+  callout:      ("\e146", $color-callout),
+  challenge:    ("\270f", $color-challenge),
+  checklist:    ("\e067", $color-checklist),
+  discussion:   ("\e123", $color-discussion),
+  keypoints:    ("\e101", $color-keypoints),
+  objectives:   ("\e085", $color-objectives),
+  prereq:       ("\e124", $color-prereq),
+  solution:     ("\e105", $color-solution),
+  testimonial:  ("\e143", $color-testimonial)
+);
+
+@each $name, $props in $blockquotes {
+  .#{$name} {
+    @include blockquote-style(nth($props, 2), nth($props, 1));
+  }
+}
+
+//----------------------------------------
+// Bootstrap Overrides
 //----------------------------------------
 
 code {
-  padding: 0 0;
+  padding: 0;
   color: inherit;
   background-color: inherit;
 }
@@ -110,21 +138,17 @@ img {
 }
 
 //----------------------------------------
-// Miscellaneous.
+// Utility Classes
 //----------------------------------------
 
-.maintitle {
-  text-align: center;
-}
-
+.maintitle,
 .footertext {
   text-align: center;
 }
 
 img.navbar-logo {
   height: 40px; // synchronize with height of navbar
-  padding-top: 5px;
-  padding-right: 10px;
+  padding: 5px 10px 0 0;
 }
 
 div.branding {
