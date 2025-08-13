@@ -1,193 +1,141 @@
 ---
 ---
-// =============================================
-// 1.1 Base Color Palette (HSL for flexibility)
-// =============================================
-$color-hue-brand: 228;
-$color-hue-accent: 350;
+//----------------------------------------
+// Colors.
+//----------------------------------------
 
-:root {
-  // Brand Colors
-  --color-brand: hsl(#{$color-hue-brand}, 55%, 35%);
-  --color-accent: hsl(#{$color-hue-accent}, 85%, 45%);
-  
-  // Semantic Colors
-  --color-error: hsl(5, 100%, 40%);
-  --color-success: hsl(145, 65%, 40%);
-  --color-warning: hsl(45, 100%, 50%);
-  
-  // Neutrals
-  --color-dark: hsl(0, 0%, 15%);
-  --color-mid: hsl(0, 0%, 50%);
-  --color-light: hsl(0, 0%, 95%);
-  
-  // Code Block Colors
-  --color-source: hsl(265, 35%, 50%);
-  --color-output: hsl(0, 0%, 20%);
-  
-  // =============================================
-  // 1.2 Blockquote Theme Colors (Auto-generated)
-  // =============================================
-  @each $name, $settings in (
-    "callout":     (hue: 65,  sat: 95%, light: 80%),
-    "challenge":   (hue: 35,  sat: 70%, light: 70%),
-    "keypoints":   (hue: 145, sat: 65%, light: 70%),
-    "solution":    (hue: 50,  sat: 30%, light: 85%)
-  ) {
-    --color-#{$name}: hsl(
-      map-get($settings, "hue"),
-      map-get($settings, "sat"),
-      map-get($settings, "light")
-    );
-  }
+// branding
+$color-brand:       #2b3990 !default;
+
+// code boxes
+$color-error:       #bd2c00 !default;
+$color-output:      #303030 !default;
+$color-source:      #6e5494 !default;
+
+// blockquotes
+$color-callout:     #f4fd9c !default;
+$color-challenge:   #eec275 !default;
+$color-checklist:   #dfd2a0 !default;
+$color-discussion:  #eec275 !default;
+$color-keypoints:   #7ae78e !default;
+$color-objectives:  #daee84 !default;
+$color-prereq:      #9cd6dc !default;
+$color-solution:    #ded4b9 !default;
+$color-testimonial: #fc8dc1 !default;
+
+//----------------------------------------
+// Specialized code blocks.
+//----------------------------------------
+
+@mixin cdSetup($color) {
+  color: $color;
+  border-left: solid 5px $color;
+  margin-bottom: 0px;
 }
 
-// =============================================
-// 2.1 Contrast Checker (WCAG Compliant Text)
-// =============================================
-@function text-contrast($color) {
-  @if (lightness($color) > 60%) {
-    @return var(--color-dark); // Dark text on light
-  } @else {
-    @return var(--color-light); // Light text on dark
-  }
-}
+.error  { @include cdSetup($color-error); }
+.output { @include cdSetup($color-output); }
+.source { @include cdSetup($color-source); }
 
-// =============================================
-// 2.2 Code Block Styling (Smart Borders)
-// =============================================
-@mixin code-block($type) {
-  $border-size: 0.25rem;
-  border-left: $border-size solid var(--color-#{$type});
-  background: rgba(var(--color-#{$type}), 0.05);
-  padding: 0.75rem;
-  margin: 0 0 1rem 0;
-  color: text-contrast(var(--color-#{$type}));
-  
-  pre & {
-    border-radius: 0.25rem;
-  }
-}
+.bash   { @include cdSetup($color-source); }
+.make   { @include cdSetup($color-source); }
+.matlab { @include cdSetup($color-source); }
+.python { @include cdSetup($color-source); }
+.r      { @include cdSetup($color-source); }
+.sql    { @include cdSetup($color-source); }
 
-// =============================================
-// 2.3 Beautiful Blockquotes (With Icons)
-// =============================================
-@mixin blockquote-theme($name, $icon) {
-  $color: var(--color-#{$name});
-  
-  border-left: 0.5rem solid $color;
-  background: linear-gradient(90deg, rgba($color, 0.1), transparent);
-  padding: 1rem;
-  margin: 1.5rem 0;
-  border-radius: 0 0.5rem 0.5rem 0;
-  
-  &::before {
-    content: $icon;
-    font-family: "Font Awesome 6 Free";
-    font-weight: 900;
-    color: $color;
-    margin-right: 0.5rem;
-  }
-  
+//----------------------------------------
+// Specialized blockquote environments for learning objectives, callouts, etc.
+//----------------------------------------
+
+$codeblock-padding: 5px !default;
+
+@mixin bkSetup($color, $glyph) {
+
+  $gradientcolor1: $color;
+  $gradientcolor2: scale-color($color, $lightness: 10%);
+
+  padding-left: $codeblock-padding;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0;
+  border: 1px solid;
+  border-color: $color;
+  padding-bottom: $codeblock-padding;
+
   h2 {
-    color: $color;
-    margin-top: 0;
+    padding-top: $codeblock-padding;
+    padding-bottom: $codeblock-padding;
+    font-size: 20px;
+    background: linear-gradient(to bottom, $gradientcolor1, $gradientcolor2);
+    border-color: $color;
+    margin-top: 0px;
+    margin-left: -$codeblock-padding; // to move back to the left margin of the enclosing blockquote
   }
-}
-
-// =============================================
-// 2.4 Spacing System (Consistent Margins/Padding)
-// =============================================
-$spacing-unit: 1rem;
-$spacing-scale: (
-  "xs": $spacing-unit * 0.5,
-  "sm": $spacing-unit,
-  "md": $spacing-unit * 1.5,
-  "lg": $spacing-unit * 2,
-  "xl": $spacing-unit * 3
-);
-
-@each $name, $size in $spacing-scale {
-  .m-#{$name} { margin: $size; }
-  .p-#{$name} { padding: $size; }
-}
-// =============================================
-// 3.1 Code Blocks
-// =============================================
-.error  { @include code-block("error"); }
-.output { @include code-block("output"); }
-.source { @include code-block("source"); }
-
-// Language-specific
-.bash, .python, .r, .sql {
-  @include code-block("source");
-}
-
-// =============================================
-// 3.2 Blockquotes
-// =============================================
-.callout {
-  @include blockquote-theme("callout", "💡");
-}
-.challenge {
-  @include blockquote-theme("challenge", "✏️");
-}
-.keypoints {
-  @include blockquote-theme("keypoints", "🔑");
-}
-
-// =============================================
-// 3.3 Branding & UI Elements
-// =============================================
-.branding {
-  color: var(--color-brand);
-  font-weight: bold;
-}
-
-.navbar-logo {
-  height: 40px;
-  padding: 5px 10px 0 0;
-  transition: transform 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.05);
+  h2:before {
+    font-family: 'Glyphicons Halflings';
+    content: $glyph;
+    float: left;
+    padding-left: $codeblock-padding;
+    padding-right: $codeblock-padding;
+    display: inline-block;
+    -webkit-font-smoothing: antialiased;
   }
+
 }
 
-// =============================================
-// 5.1 Base Typography
-// =============================================
-body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  line-height: 1.6;
-  color: var(--color-dark);
-  background: var(--color-light);
-}
+.callout{ @include bkSetup($color-callout, "\e146"); }
+.challenge{ @include bkSetup($color-challenge, "\270f"); }
+.checklist{ @include bkSetup($color-checklist, "\e067"); }
+.discussion{ @include bkSetup($color-discussion, "\e123"); }
+.keypoints{ @include bkSetup($color-keypoints, "\e101"); }
+.objectives{ @include bkSetup($color-objectives, "\e085"); }
+.prereq{ @include bkSetup($color-prereq, "\e124"); }
+.solution{ @include bkSetup($color-solution, "\e105"); }
+.testimonial{ @include bkSetup($color-testimonial, "\e143"); }
 
-h1, h2, h3 {
-  color: var(--color-brand);
-}
+//----------------------------------------
+// Override Bootstrap settings.
+//----------------------------------------
 
-// =============================================
-// 5.2 Utility Classes
-// =============================================
-.text-center { text-align: center; }
-.fold-unfold { 
-  margin-left: 1em;
-  opacity: 0.5;
-  cursor: pointer;
-}
-
-// =============================================
-// 5.3 Bootstrap Overrides
-// =============================================
 code {
-  padding: 0;
+  padding: 0 0;
   color: inherit;
-  background-color: transparent;
+  background-color: inherit;
 }
 
 img {
   max-width: 100%;
-  height: auto;
+}
+
+//----------------------------------------
+// Miscellaneous.
+//----------------------------------------
+
+.maintitle {
+  text-align: center;
+}
+
+.footertext {
+  text-align: center;
+}
+
+img.navbar-logo {
+  height: 40px; // synchronize with height of navbar
+  padding-top: 5px;
+  padding-right: 10px;
+}
+
+div.branding {
+  color: $color-brand;
+}
+
+ul,
+ol {
+  padding-left: 1em;
+}
+
+span.fold-unfold {
+  margin-left: 1em;
+  opacity: 0.5;
 }
