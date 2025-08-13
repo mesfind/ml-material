@@ -1,144 +1,263 @@
 //----------------------------------------
-// Colors
+// 🎨 Colors & Design Tokens
 //----------------------------------------
 
 // Brand
-$color-brand:       #2b3990 !default;
+$color-brand:         #2b3990;
 
-// Code blocks
-$color-error:       #bd2c00 !default;
-$color-output:      #303030 !default;
-$color-source:      #6e5494 !default;
+// Code & Output
+$color-error:         #bd2c00;
+$color-output:        #303030;
+$color-source:        #6e5494;
 
-// Blockquote types
-$color-callout:     #f4fd9c !default;
-$color-challenge:   #eec275 !default;
-$color-checklist:   #dfd2a0 !default;
-$color-discussion:  #eec275 !default;
-$color-keypoints:   #7ae78e !default;
-$color-objectives:  #daee84 !default;
-$color-prereq:      #9cd6dc !default;
-$color-solution:    #ded4b9 !default;
-$color-testimonial: #fc8dc1 !default;
+// Blockquote Palettes — now with soft pastels
+$color-callout:       #f8fadc; $color-callout-accent: #f4fd9c;
+$color-challenge:     #fdf6ed; $color-challenge-accent: #eec275;
+$color-checklist:     #f7f4ec; $color-checklist-accent: #dfd2a0;
+$color-discussion:    #fdf6ed; $color-discussion-accent: #eec275;
+$color-keypoints:     #f0fbe0; $color-keypoints-accent: #7ae78e;
+$color-objectives:    #f2fbe0; $color-objectives-accent: #daee84;
+$color-prereq:        #e6f7fb; $color-prereq-accent: #9cd6dc;
+$color-solution:      #f8f7f2; $color-solution-accent: #ded4b9;
+$color-testimonial:   #fceef2; $color-testimonial-accent: #fc8dc1;
+
+// Neutrals
+$color-text:          #333;
+$color-muted:         #666;
+$color-border:        #ddd;
+$radius:              8px;
+$transition:          all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 
 //----------------------------------------
-// Code Block Styling
+// 🧩 Creative Code Blocks (with depth & glow)
 //----------------------------------------
 
-$codeblock-padding: 5px !default;
+$code-padding: 14px;
 
 @mixin cdSetup($color) {
-  color: $color;
-  border-left: 5px solid $color;
-  margin-bottom: 1rem; // more consistent than 0px
-  padding-left: $codeblock-padding + 2px; // slight inner offset
-  line-height: 1.4;
+  position: relative;
+  border-left: 6px solid $color;
+  background: mix($color, white, 94%);
+  padding: $code-padding;
+  margin: 1rem 0;
+  border-radius: 0 $radius $radius 0;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.95em;
+  line-height: 1.5;
+  color: darken($color, 25%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: $transition;
+
+  &:hover {
+    background: mix($color, white, 90%);
+    box-shadow: 0 4px 12px rgba($color, 0.1);
+    transform: translateX(2px);
+  }
+
+  code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+  }
 }
 
-.error  { @include cdSetup($color-error); }
-.output { @include cdSetup($color-output); }
-.source { @include cdSetup($color-source); }
+.error   { @include cdSetup($color-error); }
+.output  { @include cdSetup($color-output); }
+.source  { @include cdSetup($color-source); }
 
-// Language classes inherit source color
 .bash, .make, .matlab, .python, .r, .sql {
   @include cdSetup($color-source);
 }
 
 //----------------------------------------
-// Blockquote Environments
+// 🎭 Expressive Blockquotes with Animated Headers
 //----------------------------------------
 
-// Reusable blockquote setup with header icon
-@mixin bkSetup($color, $glyph) {
-  background-color: mix($color, white, 90%);
-  border: 1px solid $color;
-  border-left-width: 5px;
-  padding: $codeblock-padding;
-  margin-bottom: 1rem;
+@mixin bkSetup($bg, $accent, $icon) {
+  $accent-dark: darken($accent, 18%);
+  $header-height: 36px;
+
+  background: $bg;
+  border: 1px solid $accent;
+  border-left: 6px solid $accent;
+  border-radius: $radius;
+  margin: 1.4rem 0;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba($accent, 0.12);
+  transition: $transition;
+
+  &:hover {
+    box-shadow: 0 6px 16px rgba($accent, 0.18);
+  }
 
   h2 {
-    margin: 0 0 0.5rem;
-    padding: $codeblock-padding;
-    font-size: 20px;
-    background-color: $color;
-    color: darken($color, 30%);
-    border: 1px solid $color;
-    margin-left: -$codeblock-padding;
-    margin-right: -$codeblock-padding;
-    padding-left: $codeblock-padding * 2;
+    margin: 0;
+    padding: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    height: $header-height;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(95deg, $accent 20%, $accent-dark 90%);
+    color: white;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
 
     &:before {
       font-family: 'Glyphicons Halflings';
-      content: $glyph;
-      margin-right: 8px;
+      content: $icon;
+      margin: 0 12px 0 16px;
       font-weight: bold;
+      opacity: 0.9;
+    }
+  }
+
+  > :not(h2) {
+    padding: 12px 16px;
+    margin: 0;
+    color: $color-text;
+    font-size: 0.98em;
+    line-height: 1.6;
+  }
+}
+
+.callout     { @include bkSetup($color-callout,     $color-callout-accent,     "\e146"); }
+.challenge   { @include bkSetup($color-challenge,   $color-challenge-accent,   "\270f"); }
+.checklist   { @include bkSetup($color-checklist,   $color-checklist-accent,   "\e067"); }
+.discussion  { @include bkSetup($color-discussion,  $color-discussion-accent,  "\e123"); }
+.keypoints   { @include bkSetup($color-keypoints,   $color-keypoints-accent,   "\e101"); }
+.objectives  { @include bkSetup($color-objectives,  $color-objectives-accent,  "\e085"); }
+.prereq      { @include bkSetup($color-prereq,      $color-prereq-accent,      "\e124"); }
+.solution    { @include bkSetup($color-solution,    $color-solution-accent,    "\e105"); }
+.testimonial { @include bkSetup($color-testimonial, $color-testimonial-accent, "\e143"); }
+
+//----------------------------------------
+// 🌀 Interactive Foldable Blocks
+//----------------------------------------
+
+.fold-container {
+  border-left: 3px solid $color-brand;
+  margin: 1.2rem 0;
+  padding-left: 6px;
+
+  h3.fold-title {
+    cursor: pointer;
+    user-select: none;
+    font-size: 1.05rem;
+    color: $color-brand;
+    font-weight: 600;
+    margin: 0.6rem 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+
+    &:before {
+      content: "▶";
+      font-size: 0.8em;
+      transition: transform 0.3s;
+    }
+
+    &:hover {
+      color: darken($color-brand, 15%);
+    }
+  }
+
+  .fold-content {
+    display: none;
+    padding: 10px 0 10px 16px;
+    border-left: 1px dashed mix($color-brand, $color-border, 50%);
+    margin-left: 8px;
+    font-size: 0.95em;
+    color: $color-muted;
+  }
+
+  &.unfolded {
+    h3.fold-title:before {
+      transform: rotate(90deg);
+    }
+    .fold-content {
+      display: block;
     }
   }
 }
 
-.callout     { @include bkSetup($color-callout, "\e146"); }
-.challenge   { @include bkSetup($color-challenge, "\270f"); }
-.checklist   { @include bkSetup($color-checklist, "\e067"); }
-.discussion  { @include bkSetup($color-discussion, "\e123"); }
-.keypoints   { @include bkSetup($color-keypoints, "\e101"); }
-.objectives  { @include bkSetup($color-objectives, "\e085"); }
-.prereq      { @include bkSetup($color-prereq, "\e124"); }
-.solution    { @include bkSetup($color-solution, "\e105"); }
-.testimonial { @include bkSetup($color-testimonial, "\e143"); }
+//----------------------------------------
+// 🖋️ Typography & Layout (Poetic Rhythm)
+//----------------------------------------
 
-//----------------------------------------
-// Bootstrap Overrides
-//----------------------------------------
+body {
+  font-family: 'Open Sans', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.7;
+  color: $color-text;
+  background: #fcfcfc;
+}
 
 code {
-  padding: 0;
-  color: inherit;
-  background: transparent;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.04);
+  color: #d70070;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+pre code {
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+  background: #f0f0f0;
+  color: #444;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #ccc;
 }
 
 img {
   max-width: 100%;
+  border-radius: $radius;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 0.8rem 0;
 }
 
-//----------------------------------------
-// Typography & Layout
-//----------------------------------------
-
 .maintitle {
+  font: 700 2.8em/1.2 'Playfair Display', Georgia, serif;
   text-align: center;
   color: $color-brand;
+  margin: 1.5rem 0;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, $color-brand, #1a235a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .footertext {
   text-align: center;
-  margin-top: 2em;
-  color: #666;
+  color: #aaa;
   font-size: 0.9em;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
 }
 
 img.navbar-logo {
   height: 40px;
   padding-top: 5px;
-  padding-right: 10px;
+  filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.1));
 }
 
 div.branding {
   color: $color-brand;
+  font-weight: 600;
 }
 
 ul, ol {
-  padding-left: 1.2em;
-  margin: 0.5em 0;
+  padding-left: 1.4em;
+  margin: 0.8em 0;
 }
 
-span.fold-unfold {
-  margin-left: 1em;
-  opacity: 0.6;
-  font-size: 0.9em;
-  color: #555;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.9;
-  }
+li > p {
+  margin: 0.4em 0;
+  line-height: 1.6;
 }
