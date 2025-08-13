@@ -1,5 +1,5 @@
 ---
-title: MLIP
+title: Materials Graph Library
 teaching: 1
 exercises: 1
 questions:
@@ -18,7 +18,6 @@ keypoints:
 
 # Introduction
 
-## Materials Graph Library
 
 MatGL (Materials Graph Library) is a specialized graph deep learning library designed for materials science. Since mathematical graphs naturally represent collections of atoms, graph deep learning models are highly effective as surrogate models for predicting material properties, consistently delivering outstanding performance.
 
