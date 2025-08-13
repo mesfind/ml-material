@@ -3,21 +3,11 @@ title:  UMA Models
 teaching: 1
 exercises: 0
 questions:
-- "What are the primary advantages of using Recurrent Neural Networks (RNNs) for time series forecasting over traditional statistical methods and other machine learning algorithms?"
-- "What are the key differences between traditional RNNs and advanced RNN models such as LSTMs and GRUs?"
-- "What are some common challenges faced when training LSTM models and how can they be mitigated?"
-- "How do Long Short-Term Memory (LSTM) networks and Gated Recurrent Units (GRUs) enhance the capability of RNNs in learning and remembering temporal dependencies in sequential data?"
-
-- "What recent advancements in RNN variants, such as the Temporal Fusion Transformer (TFT), have contributed to improved time series forecasting in physical sciences applications?"
-objectives:
-- "To identify the advantages of Recurrent Neural Networks (RNNs) in time series forecasting compared to traditional statistical methods and other machine learning algorithms."
-- "To understand the role of Long Short-Term Memory (LSTM) networks and Gated Recurrent Units (GRUs) in enhancing the memory and temporal dependency learning capabilities of RNNs."
-- "To explore the recent advancements in RNN variants, such as the Temporal Fusion Transformer (TFT), and their impact on time series forecasting in physical sciences."
+- "What are the UMA models?"
+- "How does UMA model is able to acheieve SOTA accuracy on a wide range of domains such as materials, molecules and catalysis?"
 keypoints:
-- "LSTMs and GRUs are advanced RNN architectures designed to handle long-term dependencies in sequential data."
-- "The application of deep learning, particularly through RNNs and their variants like LSTM, GRU, and TFT, holds significant promise for time series forecasting in the physical sciences"
-- "LSTM, GRU and TFT models leverage advanced mechanisms for superior predictive performance in physical sciences applications."
-
+- "UMA is an equivariant GNN that leverages a novel technique called Mixture of Linear Experts (MoLE) to give it the capacity to learn the largest multi-modal dataset"
+- "UMA is trained on 5 different DFT datasets with different levels of theory. An UMA task refers to a specific level of theory associated with that DFT dataset."
 ---
 
 <!-- MathJax -->
