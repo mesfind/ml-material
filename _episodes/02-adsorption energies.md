@@ -15,7 +15,7 @@ objectives:
 ---
 
 
-# catalysts
+# Catalysts
 
 ## Open Catalyst 2022 (OC22)
 
