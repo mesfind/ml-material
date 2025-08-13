@@ -155,7 +155,7 @@ dependencies:
   - jupyterlab
   - pip
   - pip3:
-      - torch
+      - torch==2.3.1
       - torchvision
       - pymatgen
       - ase
@@ -164,6 +164,7 @@ dependencies:
       - fairchem-data-oc
       - fairchem-applications-cattsunami
       - x3dase
+      - dgl
       - m3gnet
       - matgl
       - chgnet
