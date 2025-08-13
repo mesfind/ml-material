@@ -1189,7 +1189,7 @@ torch.save(model, model_path)
 
 mpl_model = torch.load(model_path)
 ~~~
-
+{: .python}
 
 
 ## Convolutional Neural Networks
@@ -1207,10 +1207,8 @@ import torch as T
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
 import torchvision
 import torchvision.transforms as transforms
-
 # set default device based on GPU's availability
 device = torch.device("cuda:0" if torch.cuda.is_available() else "mps:0" if torch.backends.mps.is_available() else "cpu")
 print(device)
@@ -1222,8 +1220,8 @@ print(device)
 ~~~
 {: .output}
 
-
 Download the CIFAR10 dataset from `torchvision` libarary
+
 ~~~
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -1294,6 +1292,22 @@ print(net)
 
 
 ~~~
+ConvNet(
+  (features): Sequential(
+    (0): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2))
+    (1): ReLU(inplace=True)
+    (2): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+    (3): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2))
+    (4): ReLU(inplace=True)
+    (5): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  )
+  (classifier): Sequential(
+    (0): Dropout(p=0.5, inplace=False)
+    (1): Linear(in_features=10368, out_features=512, bias=True)
+    (2): ReLU(inplace=True)
+    (3): Linear(in_features=512, out_features=10, bias=True)
+  )
+)
 ~~~
 {: .output}
 
