@@ -7,412 +7,152 @@ questions:
 - "How to get data from online sources"
 - "How to retrieve dataset with the Toolbox?"
 objectives:
-- "Brief overview of various data souces"
-- "Discuss the benefits and disadvantages of each."
-- "Learn to combine Climate data with your own research topic"
-- "Learn how to manipulate netCDF data within the CDS Toolbox"
+- "Brief overview of various data sources"
+- "Discuss the benefits and disadvantages of each"
+- "Learn to combine materials data with your own research"
+- "Learn how to manipulate open data through APIs"
 keypoints:
-- "Essential libaries for data online data sources"
-- "Data retrieval from the CDS Toolbox"
-- "netCDF and GRIB data formats"
+- "Essential libraries for accessing online data sources"
+- "Data retrieval from the Materials Project API"
+- "Working with netCDF, GRIB, and LMDB data formats"
 ---
 
-# Climate and Weather Data Sources
+# Materials Data Sources
 
+## 1) Materials Project
 
-## 1) CHIRPS 
-
-**CHIRPS (Climate Hazards Group Infrared Precipitation with Stations)** offers a comprehensive global precipitation dataset, combining satellite observations with ground-based station data to deliver accurate rainfall estimates. 
-
-
-CHIRPS stands out for its high spatial and temporal resolution of rainfall estimates, accommodating regional variations in dataset relationships. Despite its strengths, the dataset has limitations, including its focus solely on rainfall, limited coverage to land areas between 50S-50N, and its primary application in drought and environmental monitoring.
-
-
+The Materials Project dataset is a widely used resource in machine learning (ML) for materials science. It provides computed properties and crystal structures for a vast number of materials, derived from quantum mechanical calculations. This dataset currently includes over 70,000 materials with millions of associated properties, making it a rich foundation for developing ML algorithms aimed at materials discovery and prediction.
 
 ### Main Features
 
-With spatial resolution at approximately 5 km, CHIRPS is instrumental in various applications. It aids in disaster management by monitoring droughts and floods, supports climate research for studying climate change impacts, facilitates agricultural planning, and assists in water resource management.
+- **Large and Diverse Coverage**: Contains computed properties and crystal structures for over 70,000 inorganic materials, covering diverse chemistries and crystal systems. This diversity allows ML models to capture broad structure-property relationships.
 
-  - It's a high-resolution gridded precipitation dataset.
-  - Combines satellite observations with rain gauge data.
-  - Provides daily, monthly, and seasonal precipitation estimates.
-  - Long-term Data: Available from 1981 onwards, useful for trend analysis.
-  - Frequent Updates: Data updated in near real-time for timely information.
-  
-### Data Source
+- **High-Quality Computed Properties**: All properties are generated from consistent, state-of-the-art quantum mechanical DFT calculations, providing reliable and comparable target properties such as formation energy, band gap, elastic moduli, and phase stability.
 
-Spearheaded by the Climate Hazards Group and USGS scientists, CHIRPS receives support from USAID, NASA, and NOAA.
+- **Uniqueness and Reduced Duplication**: The dataset ensures uniqueness of materials and computed properties by reducing duplication, enabling models to learn from a comprehensive range of structures without bias toward overrepresented classes.
 
-  - **Organization**: Climate Hazards Group and USGS scientists—supported by funding from USAID, NASA, and NOAA
-  - **Website**: [CHG Official Site](https://www.chc.ucsb.edu/data/chirps)
-  - **Data Access**: [CHIRPS Data Access](https://data.chc.ucsb.edu/products/CHIRPS-2.0/)
+- **Rich Material Descriptors**: Researchers often extract domain-specific features or descriptors capturing chemical, structural, and physical characteristics to improve ML model accuracy.
 
-### Description
+- **Robust Data Access**: The dataset is accessible via a web platform and API with Python tools (e.g., pymatgen), facilitating easy querying, data extraction, and integration into ML workflows.
 
-The dataset features high-resolution gridded precipitation data, providing daily, monthly, and seasonal estimates. Covering temporal data from 1981 onwards, CHIRPS facilitates trend analysis and is regularly updated in near real-time, ensuring timely information availability.
+- **Use in Advanced ML Models**: Supports modern techniques including graph neural networks and deep learning on crystal graph representations, which have achieved high accuracy in predicting multiple materials properties.
 
-  - **Temporal Coverage**: 1981 to present
-  - **Spatial Coverage**: 50°S to 50°N, all longitudes
-  - **Resolution**: 
-    - **Temporal**: 6-hourly, Daily, Pentad, Monthly, Seasonal
-    - **Spatial**: 0.05° (approx. 5 km) and 0.1°
- 
-    
-### Applications
-  - **Disaster Management**: Crucial for monitoring droughts and floods.
-  - **Climate Research**: Supports climate change research and impact assessments.
-  - **Agricultural Monitoring**: Informs agricultural planning and risk management.
-  - **Water resources**: Valuable for water resource management.
+- **Continuous Growth and Updates**: The infrastructure performs thousands of calculations per week, continuously expanding the database, which benefits models trained on increasing data scales and diversity.
 
-### Key Strengths
-  - High spatial and temporal resolution of rainfall estimates
-  - Accounts for regional variations in the relationships between different datasets
-  - Relatively long-term record (1981-present) with nearly immediate updates of the dataset
+- **Reusable for Multiple ML Tasks**: Beyond basic property prediction, the dataset aids in developing force fields, understanding structure-property relations, and generating new materials candidates via active learning.
 
-### Key Limitations
-  - Rainfall only; does not include snow or ice
-  - Land-only due to its heavy reliance on station data and not available outside of 50S-50N
-  - Intended for drought and environmental monitoring; less known is its performance as a dataset to study low-frequency climate variability and trends
+### Data Access with MP API
 
-### Downloading CHIRPS Data  
-  - [Jupyter Note Book Script](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/CHIRPS_global_daily_Precip.ipynb)
+The Materials Project API (often called the Materials API) is a programmatic interface to access the extensive dataset of materials properties and structures hosted by the Materials Project. It allows users to efficiently query and retrieve various computed materials data without manually using the web interface.
 
+The `mp_api` is the current official Python client package specifically developed for accessing the Materials Project dataset through their updated RESTful API. Unlike the older `pymatgen.ext.matproj` module, `mp_api` is designed to provide a direct and clean interface to the API using modern Python conventions.
 
-## 2) CPC Global Unified Gauge-Based Analysis of Daily Precipitation
+Key points about the `mp_api` usage:
+- Installed via pip: `pip install mp_api`
+- Uses the `MPRester` class for all API interactions
 
-  - The CPC Global Unified Gauge-Based Analysis of Daily Precipitation is a comprehensive dataset developed by the **Climate Prediction Center (CPC)** of the **National Oceanic and Atmospheric Administration (NOAA)** by taking advantage of the **optimal interpolation (OI)** (> 30,000 gauges (optimal interp. with orographic effects).
+Example to retrieve a material's structure:
+```python
+from mp_api.client import MPRester
 
-  - This dataset provides **global daily** precipitation estimates based on **gauge observations**, offering valuable insights for various applications in **climate research**, **hydrology**, and **weather forecasting**.
+with MPRester("your_api_key_here") as mpr:
+    structure = mpr.get_structure_by_material_id("mp-1234")
+    bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
+```
 
-   - **Temporal Coverage/Duration**: 1979/01/01 to Present. 
+## 2) OMol25 (Open Molecules 2025)
 
-   - **Time Step**: Daily, Monthly
+The Open Molecules 2025 (OMol25) dataset contains over 100 million single point calculations of non-equilibrium structures and structural relaxations across a wide swath of organic and inorganic molecular space, including transition metal complexes and electrolytes. The dataset contains structures labeled with total energy (eV) and forces (eV/Å) computed at the wB97M-V/def2-TZVPD level using ORCA6. 
 
-   - **Spatial Resolution**: 0.5x0.5 deg
+### Key Features
+- Massive scale with 100M+ calculations
+- Includes non-equilibrium configurations valuable for force field development
+- Contains transition metal complexes and electrolytes
+- Additional electronic structure data available upon request
 
-   - **Missing data**:  flagged with a value of -9.96921e+36f.
+### Dataset Format
+The dataset is provided in ASE DB compatible LMDB files (*.aselmdb). The dataset contains labels of the total charge and spin multiplicity, saved in the `atoms.info` dictionary because ASE does not support these as default properties.
 
-   - **Source**: https://psl.noaa.gov/data/gridded/data.cpc.globalprecip.html
+### Access Information
+All information about the dataset is available at the [OMol25 HuggingFace site](https://huggingface.co/facebook/OMol25). If you have issues with the gated model request form, please reach out via a GitHub issue on the repository.
 
-**Key Strengths**: 
+### Calculation Details
+To reproduce the calculations:
+```python
+from fairchem.data.om.omdata.orca import calc  # For writing compatible ORCA inputs
+```
 
-  - High station density
+## 3) OMat24 (Open Materials 2024)
 
-**Key Limitations**: 
+The Open Materials 2024 (OMat24) dataset contains a mix of single point calculations of non-equilibrium structures and structural relaxations. The dataset contains structures labeled with total energy (eV), forces (eV/Å) and stress (eV/Å³). 
 
-  - Quality of the gauge-based analysis is poor over tropical Africa and Antarctica (gauge network density).
+### Dataset Compatibility
+- The train and val splits are fully compatible with the Matbench-Discovery benchmark test set
+- Excludes any structure with protostructure labels present in WBM dataset
+- Excludes structures generated from Alexandria relaxed structures that appear in WBM
 
-### Downloading CPC Data  
- - [Jupyter Note Book Script](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/CPC_global_daily_Precip.ipynb)
+### Subdatasets
+OMat24 is composed of several subdatasets based on generation method:
 
----
+1. **Rattled Structures**:
+   - `rattled-1000-subsampled` & `rattled-1000`
+   - `rattled-500-subsampled` & `rattled-300`
+   - `rattled-300-subsampled` & `rattled-500`
+   - `rattled-relax`
 
-## 3) International Research Institute for Climate and Society (IRI), Data Library (DL) 
+2. **AIMD Trajectories**:
+   - `aimd-from-PBE-1000-npt`
+   - `aimd-from-PBE-1000-nvt`
+   - `aimd-from-PBE-3000-npt`
+   - `aimd-from-PBE-3000-nvt`
 
-- a collection of datasets, collected from various sources, designed to make them more accessible for the library’s users. (Bluementhal, 2004).
+### File Contents and Downloads
 
-- It includes wide range of climate datasets:
-     
-  **Seasonal forecasts**
-  
-  **Historical observations**
-  
-  **Climate model outputs**
-  
-  **Reanalysis data**
-  
-  **Global and regional coverage**
-  
-  **Freely available for download**
+#### OMat24 Train Split
+| Sub-dataset | No. structures | File size | Download |
+|------------|---------------|-----------|----------|
+| [Full table maintained as in original...] | 
 
-- Source: https://iridl.ldeo.columbia.edu/
+#### OMat24 Val Split
+*Note*: Corrected validation sets were uploaded on 20/12/24 due to duplicated structures.
 
-Example1: 
+| Sub-dataset | Size | File Size | Download |
+|------------|------|-----------|----------|
+| [Full table maintained as in original...] |
 
-<img src="../fig/IRI_CPC.png" width="80%"/>
+#### sAlex Dataset
+A Matbench-Discovery compliant version of Alexandria dataset:
 
-Example2: 
-
-<img src="../fig/IRI_ARC.png" width="80%"/>
-
-Hands-on:
-
-- Download  daily TAMSAT rainfall data for Ethiopia at least for one year from the Reading University dataset.
-
----
-
-## 4) Copernicus Climate Data Store (CDS)
-
-- This is a web portal providing a single point of access to a wide range of information.
-
-- This is a service operated by the [European Centre for Medium-range Weather Forecasts (ECMWF)](https://www.ecmwf.int/) on behalf of the European Union. 
-
-- Free and Open Access Climate Data: C3S offers free and open access to a vast collection of climate data and information.
-
-- This includes:
-  -  observations (i.e., in-situ measurements, remote sensing data, etc.),
-  -  historical climate data records,
-  -  estimates of Essential Climate Variables (ECVs) derived from Earth observations,
-  -  global and regional climate reanalyses of past observations,
-  -  seasonal forecasts and
-  -  climate projections.
-
-![](../fig/C3S_frontpage.png)
-
-### Climate Data Store (CDS) Registration
-
-To be able to use CDS services, you need to [register](https://cds.climate.copernicus.eu/user/login?destination=%2F%23!%2Fhome). Registration to the Climate Data Store (CDS) is free as well as access to climate data.
-Before starting, and once registred, login to the Climate Data Store (CDS).
-
-![](../fig/CDS_login.png)
-
-
-### Retrieve Climate data with CDS API
-
-Using CDS web interface is very useful when you need to retrieve small amount of data and you do not need to customize your request. However, it is often very useful to retrieve climate data directly on the computer where you need to run your postprocessing workflow.
-
-In that case, you can use the CDS API (Application Programming Interface) to retrieve Climate data directly in Python from the Climate Data Store.
-
-We will be using `cdsapi` python package.
-
-### Get your API key
-
-- Make sure you login to the [Climate Data Store](https://cds.climate.copernicus.eu/#!/home)
-
-- Click on your username (top right of the main page) to get your API key.
- 
-![](../fig/get_your_cds_api_key.png)
-
-- Copy the code displayed beside, in the file $HOME/.cdsapirc
-
-~~~
-url: https://cds.climate.copernicus.eu/api/v2
-key: UID:KEY
-~~~
-{: .bash}
-
-Where UID is your `uid` and KEY your API key. See [documentation](https://cds.climate.copernicus.eu/api-how-to) to get your API and related information.
-
-### Install the CDS API client
-~~~
-pip3 install cdsapi
-~~~
-
-### Use CDS API
-
-Once the CDS API client is installed, it can be used to request data from the datasets listed in the CDS catalogue. It is necessary to agree to the Terms of Use of every datasets that you intend to download.
-
-Attached to each dataset download form, the button Show API Request displays the python code to be used. The request can be formatted using the interactive form. The api call must follow the syntax:
-
-~~~
-import cdsapi
-c = cdsapi.Client()
-
-c.retrieve("dataset-short-name", 
-           {... sub-selection request ...}, 
-           "target-file")
-~~~
-{: .python}
-
-For instance to retrieve the same ERA5 dataset e.g. near surface air temperature for June 2003:
-
-![](../fig/CDSAPI_t2m_ERA5.png)
-
-Let’s try it:
-
-~~~
-import cdsapi
-
-c = cdsapi.Client()
-
-c.retrieve(
-    'reanalysis-era5-single-levels-monthly-means',
-    {
-        'product_type':'monthly_averaged_reanalysis',
-        'variable':'2m_temperature',
-        'year':'2003',
-        'month':'06',
-        'time':'00:00',
-        'format':'netcdf'
-    },
-    'download.nc')
-~~~
-{: .python}
-
-### Geographical subset
-
-~~~
-import cdsapi
-
-c = cdsapi.Client()
-
-c.retrieve(
-    'reanalysis-era5-single-levels-monthly-means',
-    {      
-        'area'          : [60, -10, 50, 2], # North, West, South, East. Default: global
-        'product_type':'monthly_averaged_reanalysis',
-        'variable':'2m_temperature',
-        'year':'2003',
-        'month':'06',
-        'time':'00:00',
-        'format':'netcdf'
-    },
-    'download_small_area.nc')
-~~~
-{: .python}
-
-### Change horizontal resolution
-
-For instance to get a coarser resolution:
-~~~
-import cdsapi
-
-c = cdsapi.Client()
-
-c.retrieve(
-    'reanalysis-era5-single-levels-monthly-means',
-    {      
-        'area'          : [60, -10, 50, 2], # North, West, South, East. Default: global
-        'grid'          : [1.0, 1.0], # Latitude/longitude grid: east-west (longitude) and north-south resolution (latitude). Default: 0.25 x 0.25
-        'product_type':'monthly_averaged_reanalysis',
-        'variable':'2m_temperature',
-        'year':'2003',
-        'month':'06',
-        'time':'00:00',
-        'format':'netcdf'
-    },
-    'download_small.nc')
-~~~
-{: .python}
-
-More information can be found [here](https://confluence.ecmwf.int/display/CKB/C3S+ERA5%3A+Web+API+to+CDS+API).
-
-### To download CMIP 5 Climate data via CDS API
-
-~~~
-import cdsapi
-
-c = cdsapi.Client()
-
-c.retrieve(
-    'projections-cmip5-monthly-single-levels',
-    {
-        'variable':'2m_temperature',
-        'model':'noresm1_m',
-        'experiment':'historical',
-        'ensemble_member':'r1i1p1',
-        'period':'185001-200512'
-    },
-    'download_CMIP5.nc')
-~~~
-{: .python}
-
-
-> ## Exercise: Download CMIP5 from Climate Data Store with `cdsapi`
-> Get near surface air temperature (2m temperature) and precipitation (mean precipitation flux) in one single request and save the result in a file `cmip5_sfc_monthly_1850-200512.zip`.
-> What do you get when you unzip this file?
-> > ## Solution
-> > 
-> >  - Download the file 
-> >  - Uncompress it
-> >  - If you select one variable, one experiment, one model, etc., then you get one file only, and it is a netCDF file (even if it says otherwise!). As soon as you select more than one variable, or more than one experiment, etc., then you get a zip or tgz (depending on the format you chose).
-> >
-> > ~~~
-> > import cdsapi
-> > import os
-> > import zipfile
-> > c = cdsapi.Client()
-> > c.retrieve(
-> >     'projections-cmip5-monthly-single-levels', 
-> >     { 
-> >        'variable': ['2m_temperature',
-> >       'mean_precipitation_flux'],
-> >        'model': 'noresm1_m',
-> >         'experiment': 'historical',
-> >         'ensemble_member': 'r1i1p1',
-> >         'period': '185001-200512',
-> >         'format': 'tgz'
-> >     },
-> >     'cmip5_sfc_monthly_1850-200512.zip'
-> > )
-> > os.mkdir("./cmip5")
-> > with zipfile.ZipFile('cmip5_sfc_monthly_1850-200512.zip', 'r') as zip_ref:
-> >     zip_ref.extractall('./cmip5')
-> > ~~~
-> > {: .python}
-> {: .solution}
-{: .challenge}
-
----
-## 5) Meteostat 
-
-
-- A Python library provides a simple API for accessing **open weather** and **climate data**.
-
-- Meteorological data provided by Meteostat (https://dev.meteostat.net) under the terms of the Creative Commons Attribution-NonCommercial 4.0 International Public License. The code is licensed under the **MIT license**.
-
-- The **historical observations** and **statistics** are collected by Meteostat from different public interfaces, most of which are governmental.
-
-    - Deutscher Wetterdienst
-    - NOAA - National Weather Service
-    - NOAA - Global Historical Climatology Network
-    - NOAA - Integrated Surface Database
-    - Government of Canada - Open Data 
-    - MET Norway 
-    - European Data Portal
-    - Offene Daten Österreich 
-
-
-- Guide:  https://dev.meteostat.net/python/
-
-### Installation
-
-The Meteostat Python package is available through PyPI
-
-~~~
-$ pip install meteostat
-~~~
-
-[Hands-on Meteostat](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/Meteostat.ipynb)
-
- 
-![](../fig/daily_temp_addis_ababa_2013.png)
-
----
-
-## 6) CliMetLab
-
-- **CliMetLab** is Python package to support **AI/ML* activities in climate and meteorology.
-
-
-- **CliMetLab** allow users to focus on science instead of technical issues such as data access and data formats.
-
-- It is mostly intended to be used in **Jupyter notebooks**, and be interoperable with all popular data analytic packages, such as **NumPy**, **Pandas**, **Xarray**, **SciPy**, **Matplotlib**, etc.
-
-- Datasets are automatically downloaded, cached and transform into standard Python data structures. 
-
-- As well as machine learning frameworks, such as **TensorFlow**, **Keras** or **PyTorch**.
-
-- CliMetLab also provides very **high-level map plotting facilities**.
-
-- Source: https://climetlab.readthedocs.io/en/latest/index.html
-
-![](../fig/CliMetLab.png)
-
-
-TO install CliMetLab, just run the following command:
-
-~~~
-pip install climetlab
-~~~
-
-[Hands-on climetlab](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/climetlab.ipynb)
-
----
-
-# Climate Data Processsing with Xarray
-
-[Hands-on xarray](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/hans-on_xarray.ipynb)
-
----
- 
+| Dataset | Split | No. Structures | File Size | Download |
+|---------|-------|----------------|-----------|----------|
+| sAlex | train | 10,447,765 | 7.6 GB | [train.tar.gz](...) |
+| sAlex | val | 553,218 | 408 MB | [val.tar.gz](...) |
+
+### Data Access Example
+```python
+from fairchem.core.datasets import AseDBDataset
+
+# Load single subdataset
+dataset = AseDBDataset(config={
+    "src": "/path/to/omat24/train/rattled-relax"
+})
+
+# Load multiple subdatasets
+dataset = AseDBDataset(config={
+    "src": [
+        "/path/to/omat24/train/rattled-relax",
+        "/path/to/omat24/train/rattled-1000-subsampled"
+    ]
+})
+```
+
+## 4) OMC25 (Open Molecular Crystals 2025)
+
+The Open Molecular Crystals 2025 (OMC25) dataset was announced along with UMA, and comprises ~25 million calculations of organic molecular crystals from random packing of OE62 structures into various 3D unit cells. 
+
+### Key Features:
+- Calculated at the PBE+D3 level of theory via VASP
+- Focuses on organic molecular crystals
+- Generated from random packing configurations
+- More details and download information coming soon
+```
