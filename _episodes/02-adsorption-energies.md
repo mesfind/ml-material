@@ -13,6 +13,13 @@ objectives:
   - Evaluate model predictions against DFT and literature results.
 ---
 
+<!-- MathJax -->
+
+<script type="text/javascript"
+
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+</script>
 
 One of the most common tasks in computational catalysis is calculating **binding energies** or **adsorption energies** of small molecules on catalyst surfaces. These energies are crucial for understanding reaction mechanisms, activity trends, and designing new catalysts.
 
