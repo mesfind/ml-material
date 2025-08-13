@@ -109,7 +109,7 @@ pip3 install torch torchvision pymatgen ase matminer  fairchem-core fairchem-dat
 
 3. **Verify installation**
 
-```python
+~~~
 import pymatgen
 import matminer
 import fairchem.core
@@ -119,7 +119,8 @@ import mp_api
 import describe
 import ase
 print("Libraries loaded successfully")
-```
+~~~
+{: .python}
 
 4. **Export to YAML**
 
