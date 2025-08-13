@@ -164,7 +164,7 @@ dependencies:
       - fairchem-data-oc
       - fairchem-applications-cattsunami
       - x3dase
-      - dgl
+      - dgl -f https://data.dgl.ai/wheels/torch-2.3/repo.html
       - m3gnet
       - matgl
       - chgnet
