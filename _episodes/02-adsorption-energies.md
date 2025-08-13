@@ -13,7 +13,6 @@ objectives:
   - Evaluate model predictions against DFT and literature results.
 ---
 
-# Adsorption Energies in Computational Catalysis
 
 One of the most common tasks in computational catalysis is calculating **binding energies** or **adsorption energies** of small molecules on catalyst surfaces. These energies are crucial for understanding reaction mechanisms, activity trends, and designing new catalysts.
 
