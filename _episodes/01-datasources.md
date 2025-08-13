@@ -56,14 +56,13 @@ It is packaged as mp_api and can be installed via pip (`pip install mp_api`).
 
 The main client class for interacting with the API is MPRester, imported  to retrieve a material’s structure:
 
-~~~
+~~~python
 from mp_api.client import MPRester
 
 with MPRester("your_api_key_here") as mpr:
     structure = mpr.get_structure_by_material_id("mp-1234")
     bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
 ~~~
-{: .python}
 
 ## 2) The Open Molecules 2025 (OMol25)
 
