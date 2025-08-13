@@ -1,5 +1,5 @@
 ---
-title: Data Preprocessing and Visualization
+title: Adsorption Energies
 teaching: 1
 exercises: 0
 questions:
