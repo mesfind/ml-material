@@ -151,3 +151,50 @@ print(f"The PBE band gap for STO from Materials Project is {sto_dft_bandgap:.2f}
 {: .python}
 
 Again, you can see that using the unrelaxed SrTiO3 leads to large errors, predicting SrTiO3 to have very small band agps. Using the relaxed STO leads to predictions that are much closer to expectations. In particular, the predicted PBE band gap is quite close to the Materials Project PBE value. The experimental band gap is around 3.2 eV, which is reproduced very well by the GLLB-SC predict
+
+
+# CHGnet
+
+Crystal Hamiltonian Graph neural Network (CHGnet) is pretrained on the GGA/GGA+U static and relaxation trajectories from Materials Project, a comprehensive dataset consisting of more than 1.5 Million structures from 146k compounds spanning the whole periodic table.
+
+CHGNet highlights its ability to study electron interactions and charge distribution in atomistic modeling with near DFT accuracy. The charge inference is realized by regularizing the atom features with DFT magnetic moments, which carry rich information about both local ionic environments and charge distribution.
+
+Pretrained CHGNet achieves excellent performance on materials stability prediction from unrelaxed structures according to [Matbench Discovery repo](https://matbench-discovery.materialsproject.org/).
+
+## predicting energy, force, stress, magmom
+
+Examples for loading pre-trained CHGNet, predicting energy, force, stress, magmom as well as running structure optimization and MD.
+
+~~~
+import numpy as np
+from pymatgen.core import Structure
+# If the above line fails in Google Colab due to numpy version issue,
+# please restart the runtime, and the problem will be solved
+np.set_printoptions(precision=4, suppress=True)
+from urllib.request import urlopen
+url = "https://raw.githubusercontent.com/CederGroupHub/chgnet/main/examples/mp-18767-LiMnO2.cif"
+cif = urlopen(url).read().decode("utf-8")
+structure = Structure.from_str(cif, fmt="cif"
+print(structure)
+~~~
+{: .python}
+
+~~~
+Full Formula (Li2 Mn2 O4)
+Reduced Formula: LiMnO2
+abc   :   2.868779   4.634475   5.832507
+angles:  90.000000  90.000000  90.000000
+pbc   :       True       True       True
+Sites (8)
+  #  SP      a    b         c
+---  ----  ---  ---  --------
+  0  Li+   0.5  0.5  0.37975
+  1  Li+   0    0    0.62025
+  2  Mn3+  0.5  0.5  0.863252
+  3  Mn3+  0    0    0.136747
+  4  O2-   0.5  0    0.360824
+  5  O2-   0    0.5  0.098514
+  6  O2-   0.5  0    0.901486
+  7  O2-   0    0.5  0.639176
+~~~
+{: .output}
