@@ -31,8 +31,8 @@ Do not install packages into the base Conda environment — create one per proje
 ### Creating a Conda Environment for Materials Science ML (Linux/MacOS)
 
 ```bash
-conda create --name MatGNN python=3.12
-conda activate MatGNN
+conda create --name MatML python=3.12
+conda activate MatML
 ```
 
 ### Installing Core ML Libraries for Materials Science
@@ -45,20 +45,20 @@ pip install matminer fairchem megnet m3gnet chgnet mp-api
 ### Exporting and Sharing Environments
 
 ```bash
-conda env export --no-builds --file MatGNN.yaml
+conda env export --no-builds --file MatML.yaml
 ```
 
 Recreate the environment elsewhere:
 
 ```bash
-conda env create --file MatGNN.yaml
+conda env create --file MatML.yaml
 ```
 
 ### Deactivating and Removing Environments
 
 ```bash
 conda deactivate
-conda env remove --name MatGNN
+conda env remove --name MatML
 ```
 
 ---
@@ -70,17 +70,17 @@ conda env remove --name MatGNN
 **Linux/MacOS**
 
 ```bash
-python3 -m venv MatGNN
+python3 -m venv MatML
 source MatGNN/bin/activate
-pip install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip install torch pymatgen ase matminer fairchem-core  m3gnet matglchgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 **Windows PowerShell**
 
 ```powershell
-python -m venv MatGNN
+python -m venv MatML
 MatGNN\Scripts\activate
-pip install torch pymatgen matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
+pip install torch pymatgen ase matminer fairchem-core matgl megnet m3gnet chgnet mp-api numpy pandas scikit-learn matplotlib seaborn jupyterlab ipython
 ```
 
 Deactivate with:
@@ -96,15 +96,15 @@ deactivate
 1. **Create and activate environment**
 
 ```powershell
-conda create --name MatGNN python=3.12
-conda activate MatGNN
+conda create --name MatML python=3.12
+conda activate MatML
 ```
 
 2. **Install ML libraries for materials science**
 
 ```powershell
 conda install numpy pandas scikit-learn matplotlib seaborn jupyterlab
-pip3 install pymatgen matminer fairchem-core m3gnet matgl chgnet mp-api describe
+pip3 install pymatgen ase matminer fairchem-core m3gnet matgl chgnet mp-api describe
 ```
 
 3. **Verify installation**
@@ -117,21 +117,22 @@ import m3gnet
 import chgnet
 import mp_api
 import describe
+import ase
 print("Libraries loaded successfully")
 ```
 
 4. **Export to YAML**
 
 ```powershell
-conda env export --no-builds --file MatGNN.yaml
+conda env export --no-builds --file MatML.yaml
 ```
 
 5. **Remove and recreate environment**
 
 ```powershell
 conda deactivate
-conda env remove --name MatGNN
-conda env create --file MatGNN.yaml
+conda env remove --name MatML
+conda env create --file MatML.yaml
 ```
 
 ---
@@ -156,6 +157,7 @@ dependencies:
       - torch
       - torchvision
       - pymatgen
+      - ase
       - matminer
       - fairchem-core
       - m3gnet
@@ -169,7 +171,7 @@ pip install torch pymatgen matminer fairchem-core  m3gnet matglchgnet mp-api num
 You can create this environment directly with:
 
 ```bash
-conda env create --file MatGNN.yaml
+conda env create --file MatML.yaml
 conda activate MatGNN
 ```
 
