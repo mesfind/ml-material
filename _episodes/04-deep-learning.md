@@ -211,10 +211,8 @@ Backpropagation is a technique used to compute the gradient of the loss function
 ## ANN Model
 
 Let's start with our imports. Here we are importing Pytorch and calling it tf for ease of use. We then import a library called numpy, which helps us to represent our data as lists easily and quickly. The framework for defining a neural network as a set of Sequential layers is called keras, so we import that too.
-
+ ### Import necessary libraries
 ~~~
- Import necessary libraries
-
 # Import PyTorch
 import torch
 import torch.nn as nn
