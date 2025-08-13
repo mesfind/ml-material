@@ -150,14 +150,13 @@ atomic_reference_energies = {
 ```python
 # Option 1: CLI login
 !huggingface-cli login
-```
-```python
 # Option 2: Environment variable
 import os
 os.environ["HF_TOKEN"] = "your_hf_token_here"
 ```
 
 Load the UMA model:
+
 ```python
 from __future__ import annotations
 from fairchem.core import FAIRChemCalculator, pretrained_mlip
@@ -166,7 +165,6 @@ predictor = pretrained_mlip.get_predict_unit("uma-s-1")
 calc = FAIRChemCalculator(predictor, task_name="oc20")
 ```
 
----
 
 ### Example: Oxygen Adsorption on Pt(111)
 
@@ -231,7 +229,6 @@ plt.show()
 3. Reference energy differences
 4. Number of relaxed layers
 
----
 
 ### Exercises
 
@@ -239,7 +236,7 @@ plt.show()
 2. **Site comparison**: Compare fcc, hcp, bridge, and top sites for O adsorption.
 3. **Coverage effects**: Use larger unit cells (e.g., 3×3, 4×4) to study coverage dependence.
 
----
+
 
 ## Trends Across Metals
 
@@ -329,7 +326,6 @@ plt.title("O Adsorption Energy: DFT vs ML")
 plt.show()
 ```
 
----
 
 ## Convergence Study
 
@@ -354,8 +350,6 @@ for nlayers in [3, 4, 5, 6, 7, 8]:
 ```
 
 > ✅ **Converged by 5–6 layers** (~0.02 eV variation)
-
----
 
 ## Summary
 
