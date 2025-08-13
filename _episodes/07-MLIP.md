@@ -148,4 +148,4 @@ for i, method in ((0, "PBE"), (1, "GLLB-SC"), (2, "HSE"), (3, "SCAN")):
 print(f"The PBE band gap for STO from Materials Project is {sto_dft_bandgap:.2f} eV.")
 
 ~~~
-{: .python
+{: .python}
