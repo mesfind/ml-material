@@ -96,7 +96,7 @@ make enum.x
 It is possible to compile enumlib using conda on OSX and Linux. To do so use the command:
 
 ~~~
-$ conda install --channel matsci enumlib
+$ conda install conda-forge::enumlib
 ~~~
 {: .bash}
 
