@@ -47,3 +47,46 @@ Then try again.
 6. Close the terminal window.
 
 
+## Enumlib
+
+To compile the code manually, clone the repository with the --recursive flag:
+~~~
+git clone --recursive https://github.com/msg-byu/enumlib.git
+~~~
+{: .bash}
+
+We need to compile the symlib submodule before compiling enumlib.
+Go to the enumlib/symlib/src directory:
+
+~~~
+cd enumlib/symlib/src
+~~~
+{: .bash}
+
+Set an environment variable to identify your fortran compiler:
+[in the bash shell, gfortran compiler]
+export F90=gfortran
+[the Makefile also recognizes ifort]
+
+Then compile using the Makefile:
+~~~
+make
+~~~
+{: .bash}
+
+
+(Alternatively, instead of setting the F90 environmental variable first, you may just specify the variable during the make: make F90=gfortran.)
+
+Next, make the enumeration library itself
+~~~
+$ cd ../../src
+$ make
+~~~
+{: .bash}
+
+Finally, to make a stand-alone executable for enumeration:
+make enum.x
+
+It is possible to compile enumlib using conda on OSX and Linux. To do so use the command:
+
+conda install --channel matsci enumlib
