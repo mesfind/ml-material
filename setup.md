@@ -90,3 +90,19 @@ make enum.x
 It is possible to compile enumlib using conda on OSX and Linux. To do so use the command:
 
 conda install --channel matsci enumlib
+
+
+## HyDGL
+~~~
+pip install git+https://github.com/hkneiding/HyDGL
+~~~
+{: .bash}
+
+which installs HyDGL as a library to your Python installation or virtual environment.
+
+Afterwards you can import the library with:
+~~~
+import HyDGL
+~~~
+{: .python
+
