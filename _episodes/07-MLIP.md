@@ -16,11 +16,7 @@ keypoints:
 - "Activating and deactivating virtual environments."
 ---
 
-## Materials Graph Library
-
-Certainly! Here's a rewritten version of your text:
-
-***
+# Introduction
 
 ## Materials Graph Library
 
@@ -53,4 +49,35 @@ MatGL offers a reimplementation of M3GNet using Deep Graph Library (DGL) and PyT
 - A more intuitive API and class structure powered by DGL.
 - Support for multi-GPU training through PyTorch Lightning.
 
+# Universal Potential with Property Prediction Models
 
+There may be instances where you do not have access to a DFT relaxed structure. For instance, you may have a generated hypothetical structure or a structure obtained from an experimental source. In this notebook, we demonstrate how you can use the M3GNet universal potential to relax a crystal prior to property predictions.
+
+This provides a pathway to "DFT-free" property predictions using ML models. It should be cautioned that this is not a substitute for DFT and errors can be expected. But it is sufficiently useful in some cases as a pre-screening tool for massive scale exploration of materials.
+
+~~~
+from __future__ import annotations
+
+import warnings
+
+import torch
+from pymatgen.core import Lattice, Structure
+from pymatgen.ext.matproj import MPRester
+
+import matgl
+from matgl.ext.ase import Relaxer
+
+# To suppress warnings for clearer output
+warnings.simplefilter("ignore")
+~~~
+{: .python}
+
+For the purposes of demonstration, we will use the perovskite SrTiO3 (STO). We will create a STO with an arbitrary lattice parameter of 4.5 A.
+
+~~~
+sto = Structure.from_spacegroup(
+    "Pm-3m", Lattice.cubic(4.5), ["Sr", "Ti", "O"], [[0, 0, 0], [0.5, 0.5, 0.5], [0.5, 0.5, 0]]
+)
+print(sto)
+~~~
+{: .python}
