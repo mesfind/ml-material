@@ -470,6 +470,36 @@ By systematically following these steps, we construct a sequential neural networ
 
 <div> <img src="../fig/ANN2.png" alt="Drawing" style="width: 500px;"/></div>
 
+Let's creates an input tensor with random values, defines a linear transformation model with specified input and output sizes, and performs a forward pass to compute the output based on the input data. The model applies a linear transformation to the input data as
+\\[y= W^T \dot X  + b \\]
+
+~~~
+import torch
+import torch.nn as nn
+inp = torch.randn(1,10)
+model  = nn.Linear(in_features=10,
+                   out_features=5, bias=True)
+model(inp)
+~~~
+{: .python}
+
+~~~
+tensor([[-0.4799, -0.3322, -1.4966,  0.1146,  1.5843]],
+       grad_fn=<AddmmBackward0>)
+~~~
+{: .output}
+
+ - `nn.Linear(...)`:  creates a linear transformation layer (also known as a fully connected layer).
+- `in_features=10` : Specifies that the input to this layer will have 10 features.
+
+- `out_features=5`: Specifies that the output from this layer will have 5 features.
+bias=True: Indicates that the layer will include a bias term (which is often included in linear layers).
+- `model(inp)`: This line performs a forward pass through the model using the input tensor inp. 
+
+
+
+
+Now, let's create a custom neural network class `ANN`  by subclassing `nn.Module`, which is the base class for all neural network modules in PyTorch. The constructor (`__init__`) initializes two layers: a hidden layer that transforms an input of size `1` into an output of size `3`, and an output layer that further reduces this to a single output. The `forward` method defines the forward pass of the network, applying the `ReLU` activation function to the output of the hidden layer before passing it to the output layer. Finally, an instance of the `ANN` model is created and printed, which will display the architecture of the network, including its layers and their configurations. This code illustrates how to build more complex neural network structures compared to the single linear layer used in the previous example.
 
 ~~~
 import torch
@@ -515,6 +545,53 @@ sequential_ANN = nn.Sequential(
 print("\nSequential Model:\n", sequential_ANN)
 ~~~
 
+The following code  defines a more sophisticated multi-layer perceptron (MLP) with multiple hidden layers and activation functions compared to the simpler single-hidden-layer architecture of the previous `ANN`. This design allows for greater flexibility and capacity in learning complex patterns in data. Additionally, it incorporates device management to utilize available hardware resources efficiently, which is crucial for training larger models on substantial datasets.
+
+~~~
+class MLP(nn.Module): 
+    def __init__(self):
+        super(MLP, self).__init__()
+        self.layer1 = nn.Linear(8, 24)
+        self.relu1 = nn.ReLU()
+        self.layer2 = nn.Linear(24, 12)
+        self.relu2 = nn.ReLU()
+        self.layer3 = nn.Linear(12, 6)
+        self.relu3 = nn.ReLU()
+        self.layer4 = nn.Linear(6, 1)
+    def forward(self, x): 
+        x = self.layer1(x) 
+        x = self.relu1(x) 
+        x = self.layer2(x) 
+        x = self.relu2(x) 
+        x = self.layer3(x) 
+        x = self.relu3(x) 
+        x = self.layer4(x) 
+        return x
+
+model = MLP()
+device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
+# Check the selected device
+print("Selected device:", device)
+model.to(device)
+~~~
+{: .python}
+
+~~~
+Selected device: mps
+MLP(
+  (layer1): Linear(in_features=8, out_features=24, bias=True)
+  (relu1): ReLU()
+  (layer2): Linear(in_features=24, out_features=12, bias=True)
+  (relu2): ReLU()
+  (layer3): Linear(in_features=12, out_features=6, bias=True)
+  (relu3): ReLU()
+  (layer4): Linear(in_features=6, out_features=1, bias=True)
+)
+~~~
+{: .output}
+
+The above output indicates more complex multi-layer perceptron (MLP) neural network architecture compared to the previous ANN example above.
+
 
 ### Regression Model with Neural Networks
 
@@ -540,27 +617,28 @@ warnings.filterwarnings("ignore")
 # Set fixed random number seed
 torch.manual_seed(42);
 
-dataset = fetch_california_housing()
-print(dataset.data)
+url = 'https://raw.githubusercontent.com/mesfind/datasets/master/temp_anomalies.csv'
+df = pd.read_csv(url)
+df['Year'] = df['Year'].str.strip()
+df = df.rename(columns={'Year': 'date', 'Mean': 'anomalies'})
+df['date'] = pd.to_datetime(df['date'])
+df['year'] = df['date'].dt.year
+df['month'] = df['date'].dt.month
+df.head()
 ~~~
 {: .python}
 
 ~~~
-array([[   8.3252    ,   41.        ,    6.98412698, ...,    2.55555556,
-          37.88      , -122.23      ],
-       [   8.3014    ,   21.        ,    6.23813708, ...,    2.10984183,
-          37.86      , -122.22      ],
-       [   7.2574    ,   52.        ,    8.28813559, ...,    2.80225989,
-          37.85      , -122.24      ],
-       ...,
-       [   1.7       ,   17.        ,    5.20554273, ...,    2.3256351 ,
-          39.43      , -121.22      ],
-       [   1.8672    ,   18.        ,    5.32951289, ...,    2.12320917,
-          39.43      , -121.32      ],
-       [   2.3886    ,   16.        ,    5.25471698, ...,    2.61698113,
-          39.37      , -121.24      ]])
+  Source       date  anomalies  year  month
+0   gcag 1850-01-01    -0.6746  1850      1
+1   gcag 1850-02-01    -0.3334  1850      2
+2   gcag 1850-03-01    -0.5913  1850      3
+3   gcag 1850-04-01    -0.5887  1850      4
+4   gcag 1850-05-01    -0.5088  1850      5
 ~~~
 {: .output}
+
+Defining a list of column names—'month', 'year', and 'anomalies' that are intended to be retained from the original DataFrame df. The line df = df[columns] filters the DataFrame to include only these specified columns, effectively discarding any other columns that may have been present. Finally, the method df.head() is called to display the first few rows of the modified DataFrame, allowing for a quick inspection of the data structure and contents after the filtering operation. 
 
 
 When training on a machine that has a GPU, you need to tell PyTorch you want to use it • You’ll see the following at the top of most PyTorch code:
