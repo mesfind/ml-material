@@ -156,18 +156,51 @@ dyn.run(steps=1000)
 ```python
 from ase.build import molecule
 from fairchem.core import pretrained_mlip, FAIRChemCalculator
+import matplotlib.pyplot as plt
 
-predictor = pretrained_mlip.get_predict_unit("uma-s-1p1", device="cuda")
+# Load predictor
+predictor = pretrained_mlip.get_predict_unit("uma-s-1p1", device="cpu")
 
-#  singlet CH2
+# Singlet CH2
 singlet = molecule("CH2_s1A1d")
 singlet.info.update({"spin": 1, "charge": 0})
 singlet.calc = FAIRChemCalculator(predictor, task_name="omol")
+energy_singlet = singlet.get_potential_energy()
 
-#  triplet CH2
+# Triplet CH2
 triplet = molecule("CH2_s3B1d")
 triplet.info.update({"spin": 3, "charge": 0})
 triplet.calc = FAIRChemCalculator(predictor, task_name="omol")
+energy_triplet = triplet.get_potential_energy()
 
-triplet.get_potential_energy() - singlet.get_potential_energy()
+# Energy difference
+delta_E = energy_triplet - energy_singlet
+print(f"Singlet energy = {energy_singlet:.6f} eV")
+print(f"Triplet energy = {energy_triplet:.6f} eV")
+print(f"ΔE (triplet - singlet) = {delta_E:.6f} eV")
+
+# Plot
+bar_width = 0.6
+x = [0, 1]
+energies = [energy_singlet, energy_triplet]
+colors = ["blue", "red"]
+labels = ["Singlet CH₂", "Triplet CH₂"]
+
+plt.figure(figsize=(6, 4))
+bars = plt.bar(x, energies, width=bar_width, color=colors)
+
+# Annotate each bar with its energy
+for i, val in enumerate(energies):
+    plt.text(x[i], val, f"{val:.3f}", ha="center", va="bottom")
+
+# Annotate energy difference above the taller bar
+top = max(energies)
+plt.text((x[0]+x[1])/2, top + 0.05*top, f"ΔE = {delta_E:.3f} eV",
+         ha="center", va="bottom", fontsize=10, fontweight='bold')
+
+plt.xticks(x, labels)
+plt.ylabel("Energy (eV)")
+plt.title("CH₂ Singlet vs Triplet Energies")
+plt.tight_layout()
+plt.show()
 ```
