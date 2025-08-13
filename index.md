@@ -3,7 +3,7 @@ layout: lesson
 root: .
 ---
 
-# Welcome to Machine Learning Methods for Material Sciences Training
+# Welcome to the Workshop
 
 
 ## Why Python?
