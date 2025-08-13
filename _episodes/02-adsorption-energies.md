@@ -148,7 +148,7 @@ atomic_reference_energies = {
    - Log in and request access
    - Generate a token at [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) with **"Read access to public gated repos"**
    - Set the token:
-```{code-cell} ipython3
+```bash
 # Option 1: CLI login
 ! huggingface-cli login
 
@@ -156,10 +156,9 @@ atomic_reference_energies = {
 import os
 os.environ["HF_TOKEN"] = "your_hf_token_here"
 ```
-```
 
 Load the UMA model:
-```{code-cell}
+```bash
 from __future__ import annotations
 from fairchem.core import FAIRChemCalculator, pretrained_mlip
 
@@ -171,7 +170,7 @@ calc = FAIRChemCalculator(predictor, task_name="oc20")
 
 ### Example: Oxygen Adsorption on Pt(111)
 
-```{code-cell}
+```python
 from ase.build import add_adsorbate, fcc111
 from ase.optimize import BFGS
 
