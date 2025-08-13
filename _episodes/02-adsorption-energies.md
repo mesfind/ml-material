@@ -14,8 +14,13 @@ objectives:
   - Evaluate model predictions against DFT and literature data
 ---
 
-# Computing Adsorption Energies with Machine Learning  
-A Tutorial Using OC22 and UMA
+<!-- MathJax -->
+
+<script type="text/javascript"
+
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+
+</script>
 
 ## Introduction
 
