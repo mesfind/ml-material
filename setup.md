@@ -107,6 +107,13 @@ $ pmg config --install enumlib
 $ pmg config --install blader 
 ~~~
 
+## icet
+icet is a tool for the construction and sampling of alloy cluster expansions. A detailed description of the functionality provided as well as an extensive tutorial can be found in the [user guide](https://icet.materialsmodeling.org/).
+~~~
+pip install icet
+~~~
+{: .python}
+
 ## HyDGL
 ~~~
 pip install git+https://github.com/hkneiding/HyDGL
