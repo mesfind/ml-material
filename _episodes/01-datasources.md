@@ -17,66 +17,53 @@ keypoints:
 - "netCDF and GRIB data formats"
 ---
 
-# Climate and Weather Data Sources
+# Materials  Data Sources
 
 
-## 1) CHIRPS 
+## 1) Materials Project 
 
-**CHIRPS (Climate Hazards Group Infrared Precipitation with Stations)** offers a comprehensive global precipitation dataset, combining satellite observations with ground-based station data to deliver accurate rainfall estimates. 
-
-
-CHIRPS stands out for its high spatial and temporal resolution of rainfall estimates, accommodating regional variations in dataset relationships. Despite its strengths, the dataset has limitations, including its focus solely on rainfall, limited coverage to land areas between 50S-50N, and its primary application in drought and environmental monitoring.
-
+The Materials Project dataset is a widely used resource in machine learning (ML) for materials science. It provides computed properties and crystal structures for a vast number of materials, derived from quantum mechanical calculations. This dataset currently includes over 70,000 materials with millions of associated properties, making it a rich foundation for developing ML algorithms aimed at materials discovery and prediction.
 
 
 ### Main Features
 
-With spatial resolution at approximately 5 km, CHIRPS is instrumental in various applications. It aids in disaster management by monitoring droughts and floods, supports climate research for studying climate change impacts, facilitates agricultural planning, and assists in water resource management.
+- **Large and Diverse Coverage** that contains computed properties and crystal structures for over 70,000 inorganic materials, covering diverse chemistries and crystal systems. This diversity allows ML models to capture broad structure-property relationships.
 
-  - It's a high-resolution gridded precipitation dataset.
-  - Combines satellite observations with rain gauge data.
-  - Provides daily, monthly, and seasonal precipitation estimates.
-  - Long-term Data: Available from 1981 onwards, useful for trend analysis.
-  - Frequent Updates: Data updated in near real-time for timely information.
+- **High-Quality Computed Properties**  generated from consistent, state-of-the-art quantum mechanical DFT calculations, providing reliable and comparable target properties such as formation energy, band gap, elastic moduli, and phase stability.
+
+- **Uniqueness and Reduced Duplication**  ensures uniqueness of materials and computed properties by reducing duplication, thus enabling models to learn from a comprehensive range of structures without bias toward overrepresented classes.
+
+- **Rich Material Descriptors** that rResearchers often extract domain-specific features or descriptors capturing chemical, structural, and physical characteristics to improve ML model accuracy.
+
+- **Robust Data Access** that the dataset is accessible via a web platform and API with Python tools (e.g., pymatgen), facilitating easy querying, data extraction, and integration into ML workflows.
+
+- **Use in Advanced ML Models** that supports modern techniques including graph neural networks and deep learning on crystal graph representations, which have achieved high accuracy in predicting multiple materials properties.
+
+- **Continuous Growth and Updates** for infrastructure performs thousands of calculations per week, continuously expanding the database, which benefits models trained on increasing data scales and diversity.
+
+- **Reusable for Multiple ML Tasks** beyond basic property prediction, the dataset aids in developing force fields, understanding structure-property relations, and generating new materials candidates via active learning.
+
   
 ### Data Source
 
-Spearheaded by the Climate Hazards Group and USGS scientists, CHIRPS receives support from USAID, NASA, and NOAA.
+The Materials Project API (often called the Materials API) is a programmatic interface to access the extensive dataset of materials properties and structures hosted by the Materials Project. It allows users to efficiently query and retrieve various computed materials data without manually using the web interface.
 
-  - **Organization**: Climate Hazards Group and USGS scientists—supported by funding from USAID, NASA, and NOAA
-  - **Website**: [CHG Official Site](https://www.chc.ucsb.edu/data/chirps)
-  - **Data Access**: [CHIRPS Data Access](https://data.chc.ucsb.edu/products/CHIRPS-2.0/)
+The mp_api is the current official Python client package specifically developed for accessing the Materials Project dataset through their updated RESTful API. Unlike the older pymatgen.ext.matproj module, mp_api is designed to provide a direct and clean interface to the API using modern Python conventions.
 
-### Description
+Key points about the mp_api usage:
 
-The dataset features high-resolution gridded precipitation data, providing daily, monthly, and seasonal estimates. Covering temporal data from 1981 onwards, CHIRPS facilitates trend analysis and is regularly updated in near real-time, ensuring timely information availability.
+It is packaged as mp_api and can be installed via pip (`pip install mp_api`).
 
-  - **Temporal Coverage**: 1981 to present
-  - **Spatial Coverage**: 50°S to 50°N, all longitudes
-  - **Resolution**: 
-    - **Temporal**: 6-hourly, Daily, Pentad, Monthly, Seasonal
-    - **Spatial**: 0.05° (approx. 5 km) and 0.1°
- 
-    
-### Applications
-  - **Disaster Management**: Crucial for monitoring droughts and floods.
-  - **Climate Research**: Supports climate change research and impact assessments.
-  - **Agricultural Monitoring**: Informs agricultural planning and risk management.
-  - **Water resources**: Valuable for water resource management.
+The main client class for interacting with the API is MPRester, imported  to retrieve a material’s structure:
 
-### Key Strengths
-  - High spatial and temporal resolution of rainfall estimates
-  - Accounts for regional variations in the relationships between different datasets
-  - Relatively long-term record (1981-present) with nearly immediate updates of the dataset
+~~~
+from mp_api.client import MPRester
 
-### Key Limitations
-  - Rainfall only; does not include snow or ice
-  - Land-only due to its heavy reliance on station data and not available outside of 50S-50N
-  - Intended for drought and environmental monitoring; less known is its performance as a dataset to study low-frequency climate variability and trends
-
-### Downloading CHIRPS Data  
-  - [Jupyter Note Book Script](https://github.com/mesfind/ml-physical/blob/gh-pages/code/data_source/CHIRPS_global_daily_Precip.ipynb)
-
+with MPRester("your_api_key_here") as mpr:
+    structure = mpr.get_structure_by_material_id("mp-1234")
+    bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
+~~~
+{: .python}
 
 ## 2) CPC Global Unified Gauge-Based Analysis of Daily Precipitation
 
