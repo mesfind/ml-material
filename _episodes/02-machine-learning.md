@@ -575,19 +575,6 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > {: .solution}
 {: .challenge}
 
----
-
-### 📘 Educational Objectives
-
-This exercise enables students to:
-- Understand the **physical meaning** of the Sine Matrix elements:
-  - Diagonal: atomic self-energy term ∝ $ Z_i^{2.4} $
-  - Off-diagonal: interaction strength modulated by crystal geometry
-- Learn how to **generate invariant fingerprints** for periodic systems.
-- Use `DScribe` to compute descriptors in a reproducible way.
-- **Visualize and compare** structural fingerprints across materials.
-- Apply **similarity metrics** (e.g., cosine similarity) to quantify structural resemblance.
-
 
 
 
