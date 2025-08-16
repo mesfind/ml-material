@@ -61,97 +61,113 @@ from dscribe.descriptors import SOAP, CoulombMatrix
 # ========================================
 # 1. Define Atomic Structures
 # ========================================
-# Create a list of molecular systems using ASE's molecule builder.
-# These are neutral molecules with optimized geometries (approximate).
+print("Building molecular samples...")
 samples = [
-    molecule("H2O"),  # Water
-    molecule("NO2"),  # Nitrogen dioxide
-    molecule("CO2")   # Carbon dioxide
+    molecule("H2O"),  # Water (3 atoms)
+    molecule("NO2"),  # Nitrogen dioxide (3 atoms)
+    molecule("CO2")   # Carbon dioxide (3 atoms)
 ]
 
-# Optional: Print basic info about each molecule
+# Print basic info
 for i, mol in enumerate(samples):
-    print(f"Sample {i}: {mol.get_chemical_formula()} with {len(mol)} atoms")
+    formula = mol.get_chemical_formula()
+    atomic_numbers = mol.get_atomic_numbers()
+    print(f"Sample {i}: {formula}, atoms = {len(mol)}, atomic numbers = {atomic_numbers}")
 
 # ========================================
 # 2. Setup Descriptors
 # ========================================
-# Coulomb Matrix (CM): Encodes molecular structure into a fixed-size matrix
-# - n_atoms_max: maximum number of atoms in any molecule (here, all have 3)
-# - permutation: "sorted_l2" sorts rows/columns by L2 norm to ensure consistency
+print("\nSetting up descriptors...")
+
+# Coulomb Matrix: Global molecular descriptor
 cm_desc = CoulombMatrix(
     n_atoms_max=3,
-    permutation="sorted_l2"
+    permutation="sorted_l2"  # Ensures consistent ordering
 )
 
-# Smooth Overlap of Atomic Positions (SOAP): Local environment descriptor
-# - species: list of all chemical elements expected in the dataset
-# - r_cut: radial cutoff for local environments (in Å)
-# - n_max, l_max: basis set size for SOAP expansion
-# - crossover: allows cross-species terms (e.g., C-H interactions)
+# SOAP: Local environment descriptor
 soap_desc = SOAP(
-    species=["C", "H", "O", "N"],  # List of all possible elements
-    r_cut=5.0,                     # Cutoff radius in angstroms
+    species=["H", "C", "N", "O"],  # All elements in the dataset
+    r_cut=5.0,                     # Cutoff radius in Å
     n_max=8,                       # Number of radial basis functions
     l_max=6                        # Number of angular basis functions
 )
 
 # ========================================
-# 3. Generate Descriptors for Single System
+# 3. Coulomb Matrix for Single and Multiple Systems
 # ========================================
-# Example: Compute descriptors for the first molecule (H2O)
+print("\n--- Computing Coulomb Matrices ---")
+
+# Single molecule (H2O)
 water = samples[0]
+cm_single = cm_desc.create(water)
+print(f"Coulomb Matrix (H2O) shape: {cm_single.shape}")
+print(f"Coulomb Matrix (flattened): {cm_single}")
 
-# Coulomb Matrix for the entire molecule (shape: [n_atoms_max, n_atoms_max])
-coulomb_matrix = cm_desc.create(water)
-print(f"\nCoulomb Matrix shape for H2O: {coulomb_matrix.shape}")
-print("Coulomb Matrix:\n", coulomb_matrix)
+# Batch: All molecules
+cm_batch = cm_desc.create(samples)
+cm_batch_parallel = cm_desc.create(samples, n_jobs=2)
 
-# SOAP descriptor for specific atom(s). Here, compute for atom at index 0 (oxygen in H2O)
-soap = soap_desc.create(water, centers=[0])  # Only compute for center(s) at index 0
-print(f"SOAP descriptor shape for O in H2O: {soap.shape}")
+print(f"Batch Coulomb matrices shape: {cm_batch.shape}")        # (3, 9)
+print(f"Parallel batch shape: {cm_batch_parallel.shape}")
 
 # ========================================
-# 4. Batch Descriptor Calculation (Multiple Systems)
+# 4. SOAP Descriptors for Oxygen Atoms Only
 # ========================================
-# Compute Coulomb matrices for all samples at once
-coulomb_matrices = cm_desc.create(samples)  # Sequential
-print(f"Batch Coulomb matrices shape: {coulomb_matrices.shape}")
+print("\n--- Computing SOAP Descriptors for Oxygen Atoms ---")
 
-# Parallelized computation using multiple processes (n_jobs=3)
-coulomb_matrices_parallel = cm_desc.create(samples, n_jobs=3)
-print(f"Parallel Coulomb matrices shape: {coulomb_matrices_parallel.shape}")
-
-# Find indices of oxygen atoms in each molecule
+# Find oxygen atom indices in each molecule
 oxygen_indices = [np.where(mol.get_atomic_numbers() == 8)[0] for mol in samples]
-print(f"Oxygen atom indices in each molecule: {oxygen_indices}")
+print(f"Oxygen atom indices per molecule: {oxygen_indices}")
 
-# Compute SOAP descriptors only for oxygen atoms in all molecules, in parallel
-oxygen_soap = soap_desc.create(samples, oxygen_indices, n_jobs=3)
-print(f"SOAP descriptors for oxygen atoms shape: {oxygen_soap.shape}")
+# Compute SOAP only for oxygen atoms
+oxygen_soap_list = soap_desc.create(samples, oxygen_indices, n_jobs=2)
 
-# ========================================
-# 5. Compute Derivatives (For Force Learning or Optimization)
-# ========================================
-# Calculate derivatives of SOAP with respect to atomic positions
-# This returns dK/dR (derivatives) and optionally the descriptors themselves
-derivatives, descriptors = soap_desc.derivatives(
-    samples,
-    return_descriptor=True,
-    n_jobs=1  # Derivatives may not always support high parallelization; adjust as needed
-)
+# Output is a list of arrays (variable number of centers per molecule)
+print(f"SOAP output type: {type(oxygen_soap_list)}")
+for i, soap_per_mol in enumerate(oxygen_soap_list):
+    mol_formula = samples[i].get_chemical_formula()
+    print(f"  Molecule {i} ({mol_formula}): {soap_per_mol.shape} SOAP vectors")
 
-print(f"Shape of SOAP derivatives: {derivatives.shape}")  # (n_samples, n_centers, 3, n_features)
-print(f"Shape of SOAP descriptors from derivatives call: {descriptors.shape}")
+# Flatten into a single 2D array: (N_total_oxygens, n_features)
+oxygen_soap_flat = np.vstack(oxygen_soap_list)
+print(f"Flattened SOAP descriptors shape (all oxygen atoms): {oxygen_soap_flat.shape}")
+# Example: (5, 3696) → 1 (H2O) + 2 (NO2) + 2 (CO2)
 
 # ========================================
-# Summary
+# 5. Compute SOAP Derivatives (w.r.t. Atomic Positions)
+# ========================================
+print("\n--- Computing SOAP Derivatives ---")
+
+try:
+    derivatives_list, descriptors_list = soap_desc.derivatives(
+        samples,
+        centers=oxygen_indices,
+        return_descriptor=True,
+        n_jobs=1  # Derivatives often work best with n_jobs=1
+    )
+
+    # 'derivatives_list' is a list: one entry per molecule, shape (n_centers, 3, n_features)
+    print("SOAP derivatives computed successfully (returned as list).")
+    print(f"Number of molecules in derivatives: {len(derivatives_list)}")
+    for i, d in enumerate(derivatives_list):
+        print(f"  Molecule {i}: derivative shape = {d.shape}")
+
+except Exception as e:
+    print(f"Error computing derivatives: {e}")
+
+# ========================================
+# 6. Final Summary
 # ========================================
 print("\n--- Summary ---")
-print("Descriptors successfully computed:")
-print(f"- Coulomb Matrix: for {len(samples)} molecules → shape {coulomb_matrices.shape}")
-print(f"- SOAP: for selected atoms (e.g., O) → shape {oxygen_soap.shape}")
-print(f"- SOAP derivatives: useful for gradient-based models → shape {derivatives.shape}")
+print(f"Total molecules: {len(samples)}")
+print(f"Coulomb Matrices: shape {cm_batch.shape} → used for global molecular representation")
+print(f"SOAP (oxygen atoms): flattened to {oxygen_soap_flat.shape} → ready for machine learning")
+if 'derivatives_list' in locals():
+    total_deriv_centers = sum(d.shape[0] for d in derivatives_list)
+    print(f"SOAP derivatives: {total_deriv_centers} centers total → useful for force prediction")
+else:
+    print("SOAP derivatives: not available")
 ~~~
 {: .python}
 
