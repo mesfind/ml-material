@@ -574,4 +574,112 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > {: .solution}
 {: .challenge}
 
+> ## Exercise: Visualizing Atomic Interactions in a Periodic Crystal
+>
+> The **Sine Matrix (SM)** not only serves as a fingerprint for machine learning but also encodes **physically meaningful pairwise atomic interactions** in crystalline solids. In this exercise, you will:
+>
+> 1. Construct a face-centered cubic (FCC) aluminum crystal using `ASE`.
+> 2. Compute the **Sine Matrix interaction** between a reference atom and a moving test atom in the $xy$-plane.
+> 3. Visualize the **spatial map of interaction strength**, revealing symmetry and decay with distance.
+> 4. Interpret the resulting pattern in terms of crystal symmetry and periodicity.
+>
+> This exercise emphasizes **understanding physical meaning in descriptors**, beyond their use in fingerprints.
+
+> This exercise focuses on **visualizing atomic interactions**, not on building predictive models.
+
+> ## Solution
+>
+> ~~~python
+> import numpy as np
+> from ase import Atoms
+> from ase.build import bulk
+> import matplotlib.pyplot as plt
+> from mpl_toolkits.axes_grid1 import make_axes_locatable
+> from dscribe.descriptors import SineMatrix
+>
+> # ========================================
+> # 1. Build FCC Aluminum Crystal
+> # ========================================
+> print("Creating FCC aluminum crystal...\n")
+> system = bulk("Al", "fcc", cubic=False)  # Standard FCC unit cell
+> print(f"Al FCC structure: {len(system)} atoms, lattice vectors:")
+> print(system.get_cell())
+>
+> # ========================================
+> # 2. Setup Sine Matrix Descriptor
+> # ========================================
+> print("\nSetting up Sine Matrix descriptor for pairwise interaction...")
+>
+> sm = SineMatrix(
+>     n_atoms_max=2,           # We will have 2 atoms: one fixed, one moving
+>     permutation="none",      # Keep order: interaction is M[0,1]
+>     sparse=False             # Return dense array
+> )
+>
+> # ========================================
+> # 3. Calculate Interaction Map in xy-Plane
+> # ========================================
+> print("\nComputing interaction map in the xy-plane (z=0)...")
+>
+> n = 100  # Grid resolution
+> d = 10   # Grid size in Å
+> grid = np.zeros((n, n))
+> values = np.linspace(0, d, n)
+>
+> for ix, x in enumerate(values):
+>     for iy, y in enumerate(values):
+>         # Moving test atom
+>         test_atom = Atoms("Al", positions=[[x, y, 0]])
+>         # Combine with original FCC system
+>         extended_system = system.copy() + test_atom
+>         # Compute Sine Matrix
+>         sm_flat = sm.create(extended_system)
+>         sm_matrix = sm.unflatten(sm_flat)[0]  # Extract first sample
+>         # Get interaction between atom 0 (in FCC) and atom 1 (test atom)
+>         interaction = sm_matrix[0, 1]
+>         grid[ix, iy] = interaction
+>
+> print(f"Interaction map computed: {n}x{n} grid, range [{grid.min():.2f}, {grid.max():.2f}]")
+>
+> # ========================================
+> # 4. Visualize Interaction Pattern
+> # ========================================
+> print("\nPlotting interaction map...")
+>
+> maxval = 150  # Clip for better visualization
+> np.clip(grid, a_min=None, a_max=maxval, out=grid)
+>
+> fig, ax = plt.subplots(figsize=(6, 5))
+> c1 = ax.contourf(values, values, grid, levels=500, cmap="Blues")
+> ax.contour(values, values, grid, levels=5, colors="k", linewidths=0.5, alpha=0.5)
+>
+> # Add colorbar
+> divider = make_axes_locatable(ax)
+> cax = divider.append_axes("right", size="5%", pad=0.2)
+> cbar = plt.colorbar(c1, cax=cax, ticks=[grid.min(), grid.max()])
+> cbar.set_label("Sine Matrix Interaction Strength", rotation=90, labelpad=10)
+>
+> # Format plot
+> ax.set_aspect('equal')
+> ax.set_xlabel("x (Å)")
+> ax.set_ylabel("y (Å)")
+> ax.set_title("Al–Al Interaction in FCC Crystal (z = 0 Å)")
+>
+> plt.tight_layout()
+> plt.savefig("fig/al_interaction_map.png", dpi=150, bbox_inches='tight')
+> plt.show()
+>
+> # ========================================
+> # 5. Discussion
+> # ========================================
+> print("\n💡 Key Observations:")
+> print("  • Bright spots show strong interactions at FCC lattice sites.")
+> print("  • Symmetry matches the underlying cubic lattice.")
+> print("  • Interaction decays with distance and is modulated by periodicity.")
+> print("  • The Sine Matrix captures long-range, translationally invariant atomic influence.")
+> ~~~
+> {: .python}
+{: .solution}
+{: .challenge}
+
 
