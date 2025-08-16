@@ -90,11 +90,10 @@ cm_desc = CoulombMatrix(
 # - n_max, l_max: basis set size for SOAP expansion
 # - crossover: allows cross-species terms (e.g., C-H interactions)
 soap_desc = SOAP(
-    species=["C", "H", "O", "N"],
-    r_cut=5.0,
-    n_max=8,
-    l_max=6,
-    crossover=True
+    species=["C", "H", "O", "N"],  # List of all possible elements
+    r_cut=5.0,                     # Cutoff radius in angstroms
+    n_max=8,                       # Number of radial basis functions
+    l_max=6                        # Number of angular basis functions
 )
 
 # ========================================
