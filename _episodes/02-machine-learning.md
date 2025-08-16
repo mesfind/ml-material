@@ -578,7 +578,10 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 
  The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
 
-> ##  Exercise: Ewald Sum Matrix
+> ## Exercise: Ewald Sum Matrix for Periodic Crystals
+>
+> The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
+>
 > In this exercise, you will:
 >
 > 1. Construct a set of common ionic and covalent crystals using `ASE`.
@@ -619,6 +622,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > import matplotlib.pyplot as plt
 > import seaborn as sns
 > from ase.build import bulk
+> from ase import Atoms
 > from dscribe.descriptors import EwaldSumMatrix
 >
 > # ========================================
@@ -626,9 +630,19 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > # ========================================
 > print("Building crystalline materials...\n")
 >
+> # Manually build CsCl structure: simple cubic with two atoms
+> a_cscl = 4.12
+> cscl_cell = [[a_cscl, 0, 0], [0, a_cscl, 0], [0, 0, a_cscl]]
+> cscl_atoms = Atoms(
+>     symbols=["Cs", "Cl"],
+>     positions=[[0, 0, 0], [a_cscl/2, a_cscl/2, a_cscl/2]],  # Cl at body center
+>     cell=cscl_cell,
+>     pbc=True
+> )
+>
 > materials = [
 >     bulk("NaCl", "rocksalt", a=5.64),        # Ionic crystal
->     bulk("CsCl", "cesium_chloride", a=4.12, cubic=True),  # Another ionic structure
+>     cscl_atoms,                               # CsCl structure (fixed)
 >     bulk("Si", "diamond", a=5.43),           # Covalent crystal
 >     bulk("GaAs", "zincblende", a=5.65),      # Polar covalent
 >     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite with polarity
@@ -702,7 +716,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 >
 > plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
 > plt.tight_layout()
-> plt.savefig("ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
+> plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
 > plt.show()
 >
 > # ========================================
@@ -721,7 +735,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > plt.legend()
 > plt.grid(True, alpha=0.3)
 > plt.tight_layout()
-> plt.savefig("ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
+> plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
 > plt.show()
 >
 > # ========================================
@@ -748,7 +762,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > )
 > plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
 > plt.tight_layout()
-> plt.savefig("ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
+> plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
 > plt.show()
 > ~~~
 > {: .python}
