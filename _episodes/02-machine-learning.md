@@ -447,9 +447,9 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > # ========================================
 > > print("Building crystalline materials...\n")
 > >
-> > # Note: 'cesium_chloride' is not supported in ASE; using 'bcc' template with manual symbol assignment
+> > # Note: 'cesium_chloride' not supported; using 'bcc' template
 > > cscl = bulk("Cs", "bcc", a=4.12, cubic=True)
-> > cscl.set_chemical_symbols(["Cs", "Cl"])  # Change second atom to Cl
+> > cscl.set_chemical_symbols(["Cs", "Cl"])  # Cs at (0,0,0), Cl at (0.5,0.5,0.5)
 > >
 > > materials = [
 > >     bulk("Si", "diamond", a=5.43),           # Diamond cubic
@@ -473,22 +473,16 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > >
 > > sm_desc = SineMatrix(
 > >     n_atoms_max=8,           # Maximum number of atoms in unit cell
-> >     permutation="none",      # Keep original atom order
-> >     flatten=False            # Keep matrix form for analysis
+> >     permutation="none"       # Keep original atom order
 > > )
 > >
-> > # Compute Sine Matrix for each material
-> > sine_matrices = sm_desc.create(materials)
-> > print(f"Sine Matrix output shape: {sine_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
+> > # Compute Sine Matrix (output is always flattened in DScribe >=0.5)
+> > fingerprints = sm_desc.create(materials)
+> > print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, 64)
 > >
-> > # Also generate flattened version for use as fingerprint
-> > sm_desc_flat = SineMatrix(
-> >     n_atoms_max=8,
-> >     permutation="none",
-> >     flatten=True
-> > )
-> > fingerprints = sm_desc_flat.create(materials)
-> > print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
+> > # Reshape to get matrix form: (n_samples, 8, 8)
+> > sine_matrices = fingerprints.reshape(len(materials), 8, 8)
+> > print(f"Sine Matrix output shape: {sine_matrices.shape}")     # (n_samples, 8, 8)
 > >
 > > # ========================================
 > > # 3. Analyze Sine Matrix Structure
@@ -576,6 +570,5 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > {: .python}
 > {: .solution}
 {: .challenge}
-
 
 
