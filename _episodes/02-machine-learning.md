@@ -81,25 +81,6 @@ By updating Equation and repeat unitil convergence
 \\[\Theta_j := \Theta_j - \alpha \frac{1}{m} \sum_{i=1}^m (h_{\Theta}(x^{(i)}) - y^{(i)})x_j^{(i)}\\] (simultaneously update \\(\Theta_j\\) for all \\(j\\))
 
 
-- **Regularization:** Linear Regression does not inherently include regularization, making it susceptible to overfitting if the number of features is large compared to the number of samples.
-
-**Lasso Regression (L1 Regularization):**
-- **Objective:** Lasso Regression extends linear regression by introducing **L1 regularization**, which adds a penalty term based on the **absolute values of the coefficients**.
-- **Equation:** The Lasso regression objective function includes the sum of squared differences and a penalty term proportional to the absolute values of the coefficients.
-- **Benefits:** Lasso tends to produce sparse models, i.e., it can force some coefficients to be exactly zero, effectively performing feature selection.
-- **Use Case:** It is particularly useful when dealing with high-dimensional datasets with many features.
-
-**Ridge Regression (L2 Regularization):**
-- **Objective:** Ridge Regression is another extension of linear regression, but it introduces **L2 regularization**, adding a penalty term based on the **squared values of the coefficients**.
-- **Equation:** The Ridge regression objective function includes the sum of squared differences and a penalty term proportional to the squared values of the coefficients.
-- **Benefits:** Ridge helps prevent multicollinearity by shrinking the coefficients, and it is effective when there are many correlated features.
-- **Use Case:** It is commonly used in situations where multicollinearity is a concern, as it can stabilize the model and produce more reliable coefficients.
-
-**Comparison:**
-- **Regularization Types:** Linear Regression has no regularization, Lasso uses L1 regularization, and Ridge uses L2 regularization.
-- **Effect on Coefficients:** Lasso can lead to sparse models with some coefficients exactly zero, effectively performing feature selection. Ridge tends to shrink coefficients toward zero without making them exactly zero.
-- **Use Cases:** Lasso is beneficial when feature selection is crucial, while Ridge is useful for preventing multicollinearity and stabilizing the model.
-
 #### Linear Regression
 ~~~
 # Linear Regression
