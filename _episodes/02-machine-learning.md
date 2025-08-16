@@ -621,7 +621,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > >
 > > # 1. Build Crystalline Materials
 > > print("Building crystalline materials...\n")
-> >
+> > ~~~
 > > from ase import Atoms
 > > from ase.build import bulk
 > > from dscribe.descriptors import EwaldSumMatrix
