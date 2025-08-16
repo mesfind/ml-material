@@ -48,7 +48,16 @@ Fingerprints are designed to address these problems. A fingerprint is a fixed le
 
 ## DScribe
 
-DScribe is a Python package for transforming atomic structures into fixed-size numerical fingerprints. These fingerprints are often called "descriptors" and they can be used in various tasks, including machine learning, visualization, similarity analysis, etc.
+DScribe is a Python package for transforming atomic structures into fixed-size numerical fingerprints. These fingerprints are often called "descriptors" and they can be used in various tasks, including machine learning, visualization, similarity analysis, etc.   The libary introduce the descriptor and demonstrate their basic call signature. We have also included several examples that should cover many of the use cases.
+
+ - Coulomb Matrix
+ - Sine matrix
+ - Ewald sum matrix
+ - Atom-centered Symmetry Functions
+ - Smooth Overlap of Atomic Positions
+ - Many-body Tensor Representation
+ - Local Many-body Tensor Representation
+ - Valle-Oganov descriptor
 
 
 ~~~
