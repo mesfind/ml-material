@@ -403,7 +403,7 @@ Coulomb matrix with periodic boundary conditions (not recommended):
 ~~~
 {: .output}
 
-The sine matrix [1] captures features of interacting atoms in a periodic system with a very low computational cost. The matrix elements are defined by
+The sine matrix captures features of interacting atoms in a periodic system with a very low computational cost. The matrix elements are defined by
 
 $$
 M_{ij}^\mathrm{sine} =
@@ -434,7 +434,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > 
 > > ## Solution
 > >
-> > ~~~
+> > ~~~python
 > > import numpy as np
 > > import matplotlib.pyplot as plt
 > > import seaborn as sns
@@ -571,7 +571,6 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > {: .python}
 > {: .solution}
 {: .challenge}
-
 
 
 
