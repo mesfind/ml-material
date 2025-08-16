@@ -593,9 +593,9 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 >
 > This exercise focuses on **descriptor generation and physical interpretation**, not on machine learning.
 > ## Solution
-> ~~~
-> > # Solution
-> >
+> 
+> >  # Solution
+> > ~~~
 > > # 1. Import and Setup
 > > import numpy as np
 > > import scipy.constants
