@@ -704,7 +704,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 >
 > plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
 > plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
+> plt.savefig("ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
 > plt.show()
 >
 > # ========================================
@@ -723,7 +723,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > plt.legend()
 > plt.grid(True, alpha=0.3)
 > plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
+> plt.savefig("ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
 > plt.show()
 >
 > # ========================================
@@ -750,7 +750,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > )
 > plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
 > plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
+> plt.savefig("ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
 > plt.show()
 > ~~~
 > {: .python}
