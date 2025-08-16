@@ -187,83 +187,165 @@ For **inorganic crystalline materials** (instead of molecules) replaces molecula
 
 ~~~
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 from ase.build import bulk
-from dscribe.descriptors import SOAP, CoulombMatrix
+from dscribe.descriptors import SOAP
 
 # ========================================
 # 1. Define Inorganic Crystalline Materials
 # ========================================
 print("Constructing bulk inorganic materials...")
 materials = [
-    bulk("Cu", "fcc", a=3.6),        # Face-centered cubic copper
-    bulk("Si", "diamond", a=5.43),   # Diamond cubic silicon
-    bulk("NaCl", "rocksalt", a=5.64) # Rocksalt sodium chloride
+    bulk("Cu", "fcc", a=3.6),           # FCC copper
+    bulk("Si", "diamond", a=5.43),      # Diamond silicon
+    bulk("NaCl", "rocksalt", a=5.64)    # Rocksalt sodium chloride
 ]
+
+# True formation energies (eV/atom) from experimental or DFT data
+# Source: approximate values for demonstration
+formation_energies = np.array([
+    0.00,      # Cu (elemental reference)
+    -0.80,     # Si (from elemental Si)
+    -3.10      # NaCl (strong ionic bonding)
+])
 
 # Print material info
 for i, mat in enumerate(materials):
     formula = mat.get_chemical_formula()
     natoms = len(mat)
-    cell = mat.get_cell_lengths_and_angles()
-    print(f"Material {i}: {formula}, structure = {mat.cell.cellpar()[3:]}, "
-          f"lattice parameter ≈ {cell[0]:.2f} Å, atoms per unit cell = {natoms}")
-
+    cellpar = mat.cell.cellpar()
+    print(f"Material {i}: {formula}, atoms = {natoms}, "
+          f"a ≈ {cellpar[0]:.2f} Å, E_form = {formation_energies[i]:.2f} eV/atom")
 # ========================================
-# 2. Setup Descriptors
+# 2. Setup SOAP Descriptor
 # ========================================
-print("\nSetting up descriptors...")
-
-# For periodic solids, Coulomb Matrix is not directly applicable.
-# Instead, we use averaged or summed SOAP for the entire structure.
-# Alternatively, use CM for isolated clusters — not recommended for bulk.
+print("\nSetting up SOAP descriptor...")
 
 soap_desc = SOAP(
-    species=["Cu", "Si", "Na", "Cl"],  # All elements present
-    r_cut=4.0,                         # Local environment cutoff (Å)
-    n_max=6,                           # Radial basis order
-    l_max=4,                           # Angular momentum cutoff
-    periodic=True                      # Enable periodic boundary handling
+    species=["Cu", "Si", "Na", "Cl"],
+    r_cut=4.0,                    # Local environment radius
+    n_max=6,                      # Radial basis order
+    l_max=4,                      # Angular momentum cutoff
+    periodic=True,                # Handle PBCs
+    sparse=False                  # Dense output for ML
 )
-
 # ========================================
-# 3. Compute Global Descriptors via Averaged SOAP
+# 3. Compute Averaged SOAP Descriptors
 # ========================================
 print("\n--- Computing Averaged SOAP Descriptors ---")
 
-# For solids, global representation can be obtained by averaging over all atoms
-avg_soap_descriptors = []
+X, y = [], formation_energies  # Features and targets
+
 for i, mat in enumerate(materials):
     formula = mat.get_chemical_formula()
     
+    # ✅ Convert centers to list of integers
+    centers = list(range(len(mat)))
+    
     # Compute SOAP for all atoms
-    soap_local = soap_desc.create(mat, centers=range(len(mat)))
+    soap_local = soap_desc.create(mat, centers=centers)
+    print(f"  {formula}: per-atom SOAP shape = {soap_local.shape}")
     
-    # Average over all atomic environments → single vector per material
-    soap_global = np.mean(soap_local, axis=0, keepdims=True)
-    avg_soap_descriptors.append(soap_global)
+    # Average over atoms → global descriptor
+    soap_global = np.mean(soap_local, axis=0)
+    X.append(soap_global)
+
+# Convert to NumPy array
+X = np.array(X)  # Shape: (n_samples, n_features)
+y = np.array(y)  # Shape: (n_samples,)
+
+print(f"\nFinal feature matrix shape: {X.shape}")
+# ========================================
+# 3. Compute Averaged SOAP Descriptors
+# ========================================
+print("\n--- Computing Averaged SOAP Descriptors ---")
+
+X, y = [], formation_energies  # Features and targets
+
+for i, mat in enumerate(materials):
+    formula = mat.get_chemical_formula()
     
-    print(f"Material {i} ({formula}): {soap_local.shape} → averaged to {soap_global.shape}")
+    # ✅ Convert centers to list of integers
+    centers = list(range(len(mat)))
+    
+    # Compute SOAP for all atoms
+    soap_local = soap_desc.create(mat, centers=centers)
+    print(f"  {formula}: per-atom SOAP shape = {soap_local.shape}")
+    
+    # Average over atoms → global descriptor
+    soap_global = np.mean(soap_local, axis=0)
+    X.append(soap_global)
 
-# Stack into a single array: (n_samples, n_features)
-global_soap_matrix = np.vstack([desc[0] for desc in avg_soap_descriptors])
-print(f"Final averaged SOAP matrix shape: {global_soap_matrix.shape}")
+# Convert to NumPy array
+X = np.array(X)  # Shape: (n_samples, n_features)
+y = np.array(y)  # Shape: (n_samples,)
 
+print(f"\nFinal feature matrix shape: {X.shape}")
 # ========================================
-# 4. Compute SOAP Derivatives (Optional)
+# 4. Train-Test Split (n=3 → use 2 for train, 1 for test)
 # ========================================
-print("\n--- Computing SOAP Derivatives (for force learning) ---")
+print("\n--- Training Random Forest Regressor ---")
 
-try:
-    derivatives_list, descriptors_list = soap_desc.derivatives(
-        materials,
-        return_descriptor=True,
-        n_jobs=1  # Derivatives in periodic systems may not parallelize well
-    )
-    print(f"SOAP derivatives computed for {len(derivatives_list)} materials.")
-    for i, d in enumerate(derivatives_list):
-        print(f"  Material {i}: derivative shape = {d.shape} (n_atoms, 3, n_features)")
-except Exception as e:
-    print(f"Error computing derivatives: {e}")
+# For n=3, use test_size=1/3
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.33, random_state=42, shuffle=True
+)
+
+print(f"Training samples: {X_train.shape[0]}, Test samples: {X_test.shape[0]}")
+
+# Initialize and train Random Forest
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=3,
+    random_state=42,
+    n_jobs=-1
+)
+
+rf_model.fit(X_train, y_train)
+
+# Predictions
+y_pred_train = rf_model.predict(X_train)
+y_pred_test = rf_model.predict(X_test)
+
+# Metrics
+mae_train = mean_absolute_error(y_train, y_pred_train)
+mae_test = mean_absolute_error(y_test, y_pred_test)
+r2_test = r2_score(y_test, y_pred_test)
+
+print(f"Training MAE: {mae_train:.3f} eV/atom")
+print(f"Test MAE: {mae_test:.3f} eV/atom")
+print(f"Test R²: {r2_test:.3f}")
+# ========================================
+# 5. Feature Importance (Optional)
+# ========================================
+print("\n--- Feature Importance (Top 10) ---")
+importances = rf_model.feature_importances_
+top_indices = np.argsort(importances)[-10:][::-1]
+
+for idx in top_indices:
+    print(f"  Feature {idx}: importance = {importances[idx]:.4f}")
+# ========================================
+# 6. Plot Results
+# ========================================
+plt.figure(figsize=(8, 5))
+plt.scatter(y_train, y_pred_train, color='blue', label='Train', s=60, alpha=0.8)
+if len(y_test) > 0:
+    plt.scatter(y_test, y_pred_test, color='red', label='Test', s=60, edgecolor='k', linewidth=1)
+
+# Diagonal line
+min_val, max_val = min(min(y), min(y_pred_test)), max(max(y), max(y_pred_test))
+plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, label='Ideal')
+
+plt.xlabel("True Formation Energy (eV/atom)", fontsize=12)
+plt.ylabel("Predicted Formation Energy (eV/atom)", fontsize=12)
+plt.title("Random Forest: Predicted vs True Formation Energy", fontsize=13)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 ~~~
 {: .python}
 
