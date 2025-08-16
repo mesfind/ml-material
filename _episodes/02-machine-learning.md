@@ -578,8 +578,8 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 
  The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
 
-> ## Exercise: Ewald Sum Matrix for Periodic Crystals
->
+> ## Exercise: Ewald Sum Matrix
+> 
 > The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
 >
 > In this exercise, you will:
@@ -617,157 +617,144 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > This makes the ESM physically consistent and suitable for high-throughput screening.
 > ## Solution
 >
-> ~~~python
-> import numpy as np
-> import matplotlib.pyplot as plt
-> import seaborn as sns
-> from ase.build import bulk
-> from ase import Atoms
-> from dscribe.descriptors import EwaldSumMatrix
->
-> # ========================================
-> # 1. Build Crystalline Materials
-> # ========================================
-> print("Building crystalline materials...\n")
->
-> # Manually build CsCl structure: simple cubic with two atoms
-> a_cscl = 4.12
-> cscl_cell = [[a_cscl, 0, 0], [0, a_cscl, 0], [0, 0, a_cscl]]
-> cscl_atoms = Atoms(
->     symbols=["Cs", "Cl"],
->     positions=[[0, 0, 0], [a_cscl/2, a_cscl/2, a_cscl/2]],  # Cl at body center
->     cell=cscl_cell,
->     pbc=True
-> )
->
-> materials = [
->     bulk("NaCl", "rocksalt", a=5.64),        # Ionic crystal
->     cscl_atoms,                               # CsCl structure (fixed)
->     bulk("Si", "diamond", a=5.43),           # Covalent crystal
->     bulk("GaAs", "zincblende", a=5.65),      # Polar covalent
->     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite with polarity
-> ]
->
-> names = ["NaCl", "CsCl", "Si", "GaAs", "ZnO"]
->
-> for i, name in enumerate(names):
->     natoms = len(materials[i])
->     formula = materials[i].get_chemical_formula()
->     print(f"{name}: {formula}, atoms = {natoms}, periodic = {materials[i].pbc}")
->
-> # ========================================
-> # 2. Setup Ewald Sum Matrix Descriptor
-> # ========================================
-> print("\nSetting up Ewald Sum Matrix descriptor...")
->
-> esm = EwaldSumMatrix(
->     n_atoms_max=8,           # Maximum number of atoms in unit cell
->     permutation="none",      # Keep original atom order
->     sparse=False,            # Return dense matrix
->     rcut=10.0,               # Real-space cutoff (Å)
->     sigma=1.0,               # Screening parameter
->     eta=2.5                  # Ewald convergence parameter (alpha)
-> )
->
-> # Compute Ewald Sum Matrices
-> esm_matrices = esm.create(materials, flatten=False)  # Keep as matrices
-> print(f"Ewald Sum Matrix output shape: {esm_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
->
-> # Also create flattened version for comparison
-> fingerprints = esm.create(materials, flatten=True)
-> print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
->
-> # ========================================
-> # 3. Analyze ESM Structure
-> # ========================================
-> for i, name in enumerate(names):
->     M = esm_matrices[i]
->     n_actual = len(materials[i])
->
->     print(f"\n--- {name} Ewald Sum Matrix Summary ---")
->     diag_mean = np.diag(M)[:n_actual].mean()
->     off_diag_vals = M[~np.eye(M.shape[0], dtype=bool)]  # All off-diagonal
->     off_diag_mean = off_diag_vals.mean()
->     print(f"  Diagonal (self-energy) mean: {diag_mean:.3f}")
->     print(f"  Off-diagonal (interaction) mean: {off_diag_mean:.3f}")
->     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
->
-> # ========================================
-> # 4. Visualize ESM Matrices
-> # ========================================
-> fig, axes = plt.subplots(2, 3, figsize=(12, 8))
-> axes = axes.flatten()
->
-> for i, name in enumerate(names):
->     M = esm_matrices[i]
->     sns.heatmap(
->         M,
->         ax=axes[i],
->         cmap="RdBu_r",
->         cbar=True,
->         square=True,
->         center=0.0,
->         cbar_kws={"shrink": 0.8}
->     )
->     axes[i].set_title(f"{name} ESM")
->
-> # Remove last subplot
-> fig.delaxes(axes[-1])
->
-> plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
-> plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
-> plt.show()
->
-> # ========================================
-> # 5. Compare Flattened Fingerprints
-> # ========================================
-> plt.figure(figsize=(10, 6))
-> x_pos = np.arange(fingerprints.shape[1])
->
-> colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
-> for i, name in enumerate(names):
->     plt.plot(x_pos, fingerprints[i], color=colors[i], label=name, linewidth=1.5, alpha=0.8)
->
-> plt.xlabel("Feature Index (Flattened ESM)", fontsize=12)
-> plt.ylabel("Descriptor Value", fontsize=12)
-> plt.title("Comparison of Flattened Ewald Sum Matrix Fingerprints", fontsize=13)
-> plt.legend()
-> plt.grid(True, alpha=0.3)
-> plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
-> plt.show()
->
-> # ========================================
-> # 6. Compute Pairwise Similarity
-> # ========================================
-> print("\nPairwise Cosine Similarity Between ESM Fingerprints:")
-> from sklearn.metrics.pairwise import cosine_similarity
->
-> sim_matrix = cosine_similarity(fingerprints)
-> np.set_printoptions(precision=3, suppress=True)
-> print("Similarity matrix:")
-> print(sim_matrix)
->
-> # Heatmap of similarity
-> plt.figure(figsize=(6, 5))
-> sns.heatmap(
->     sim_matrix,
->     annot=True,
->     xticklabels=names,
->     yticklabels=names,
->     cmap="Reds",
->     vmin=0.5, vmax=1.0,
->     fmt=".3f"
-> )
-> plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
-> plt.tight_layout()
-> plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
-> plt.show()
-> ~~~
-> {: .python}
-{: .solution}
+> > # Solution
+> >
+> > # 1. Build Crystalline Materials
+> > print("Building crystalline materials...\n")
+> >
+> > from ase import Atoms
+> > from ase.build import bulk
+> > from dscribe.descriptors import EwaldSumMatrix
+> > import numpy as np
+> > import matplotlib.pyplot as plt
+> > import seaborn as sns
+> >
+> > # Manually build CsCl structure: simple cubic with two atoms
+> > a_cscl = 4.12
+> > cscl_cell = [[a_cscl, 0, 0], [0, a_cscl, 0], [0, 0, a_cscl]]
+> > cscl_atoms = Atoms(
+> >     symbols=["Cs", "Cl"],
+> >     positions=[[0, 0, 0], [a_cscl/2, a_cscl/2, a_cscl/2]],  # Cl at body center
+> >     cell=cscl_cell,
+> >     pbc=True
+> > )
+> >
+> > materials = [
+> >     bulk("NaCl", "rocksalt", a=5.64),        # Ionic crystal
+> >     cscl_atoms,                               # CsCl structure (fixed)
+> >     bulk("Si", "diamond", a=5.43),           # Covalent crystal
+> >     bulk("GaAs", "zincblende", a=5.65),      # Polar covalent
+> >     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite with polarity
+> > ]
+> >
+> > names = ["NaCl", "CsCl", "Si", "GaAs", "ZnO"]
+> >
+> > for i, name in enumerate(names):
+> >     natoms = len(materials[i])
+> >     formula = materials[i].get_chemical_formula()
+> >     print(f"{name}: {formula}, atoms = {natoms}, periodic = {materials[i].pbc}")
+> >
+> > # 2. Setup Ewald Sum Matrix Descriptor
+> > print("\nSetting up Ewald Sum Matrix descriptor...")
+> >
+> > esm = EwaldSumMatrix(
+> >     n_atoms_max=8,           # Maximum number of atoms in unit cell
+> >     permutation="none",      # Keep original atom order
+> >     sparse=False,            # Return dense matrix
+> >     sigma=1.0,               # Screening parameter for erf
+> >     alpha=2.5                # Ewald convergence parameter (was 'eta')
+> > )
+> >
+> > # 3. Compute Ewald Sum Matrices
+> > esm_matrices = esm.create(materials, flatten=False)  # Keep as matrices
+> > print(f"Ewald Sum Matrix output shape: {esm_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
+> >
+> > # Also create flattened version for comparison
+> > fingerprints = esm.create(materials, flatten=True)
+> > print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
+> >
+> > # 4. Analyze ESM Structure
+> > for i, name in enumerate(names):
+> >     M = esm_matrices[i]
+> >     n_actual = len(materials[i])
+> >
+> >     print(f"\n--- {name} Ewald Sum Matrix Summary ---")
+> >     diag_mean = np.diag(M)[:n_actual].mean()
+> >     off_diag_vals = M[~np.eye(M.shape[0], dtype=bool)]  # All off-diagonal
+> >     off_diag_mean = off_diag_vals.mean()
+> >     print(f"  Diagonal (self-energy) mean: {diag_mean:.3f}")
+> >     print(f"  Off-diagonal (interaction) mean: {off_diag_mean:.3f}")
+> >     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
+> >
+> > # 5. Visualize ESM Matrices
+> > fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+> > axes = axes.flatten()
+> >
+> > for i, name in enumerate(names):
+> >     M = esm_matrices[i]
+> >     sns.heatmap(
+> >         M,
+> >         ax=axes[i],
+> >         cmap="RdBu_r",
+> >         cbar=True,
+> >         square=True,
+> >         center=0.0,
+> >         cbar_kws={"shrink": 0.8}
+> >     )
+> >     axes[i].set_title(f"{name} ESM")
+> >
+> > # Remove last subplot
+> > fig.delaxes(axes[-1])
+> >
+> > plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
+> > plt.tight_layout()
+> > plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
+> > plt.show()
+> >
+> > # 6. Compare Flattened Fingerprints
+> > plt.figure(figsize=(10, 6))
+> > x_pos = np.arange(fingerprints.shape[1])
+> >
+> > colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
+> > for i, name in enumerate(names):
+> >     plt.plot(x_pos, fingerprints[i], color=colors[i], label=name, linewidth=1.5, alpha=0.8)
+> >
+> > plt.xlabel("Feature Index (Flattened ESM)", fontsize=12)
+> > plt.ylabel("Descriptor Value", fontsize=12)
+> > plt.title("Comparison of Flattened Ewald Sum Matrix Fingerprints", fontsize=13)
+> > plt.legend()
+> > plt.grid(True, alpha=0.3)
+> > plt.tight_layout()
+> > plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
+> > plt.show()
+> >
+> > # 7. Compute Pairwise Similarity
+> > print("\nPairwise Cosine Similarity Between ESM Fingerprints:")
+> > from sklearn.metrics.pairwise import cosine_similarity
+> >
+> > sim_matrix = cosine_similarity(fingerprints)
+> > np.set_printoptions(precision=3, suppress=True)
+> > print("Similarity matrix:")
+> > print(sim_matrix)
+> >
+> > # Heatmap of similarity
+> > plt.figure(figsize=(6, 5))
+> > sns.heatmap(
+> >     sim_matrix,
+> >     annot=True,
+> >     xticklabels=names,
+> >     yticklabels=names,
+> >     cmap="Reds",
+> >     vmin=0.5, vmax=1.0,
+> >     fmt=".3f"
+> > )
+> > plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
+> > plt.tight_layout()
+> > plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
+> > plt.show()
+> > ~~~
+> > {: .python}
+> {: .solution}
 {: .challenge}
-
 
 # Machine Learning 
