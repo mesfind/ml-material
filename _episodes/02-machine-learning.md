@@ -574,112 +574,185 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > {: .solution}
 {: .challenge}
 
-> ## Exercise: Visualizing Atomic Interactions in a Periodic Crystal
->
-> The **Sine Matrix (SM)** not only serves as a fingerprint for machine learning but also encodes **physically meaningful pairwise atomic interactions** in crystalline solids. In this exercise, you will:
->
-> 1. Construct a face-centered cubic (FCC) aluminum crystal using `ASE`.
-> 2. Compute the **Sine Matrix interaction** between a reference atom and a moving test atom in the $xy$-plane.
-> 3. Visualize the **spatial map of interaction strength**, revealing symmetry and decay with distance.
-> 4. Interpret the resulting pattern in terms of crystal symmetry and periodicity.
->
-> This exercise emphasizes **understanding physical meaning in descriptors**, beyond their use in fingerprints.
 
-> This exercise focuses on **visualizing atomic interactions**, not on building predictive models.
+> ## Exercise: Exploring the Ewald Sum Matrix for Periodic Crystals
+>
+> The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
+>
+> In this exercise, you will:
+>
+> 1. Construct a set of common ionic and covalent crystals using `ASE`.
+> 2. Compute the **Ewald Sum Matrix descriptor** for each material using `DScribe`.
+> 3. Analyze the structure of the ESM: diagonal (self-energy) vs. off-diagonal (interaction) terms.
+> 4. Visualize the ESM matrices and compare their patterns across different crystal types.
+> 5. Understand how ESM accounts for periodicity and charge neutrality via Ewald summation.
+>
+> This exercise focuses on **physical interpretation and descriptor generation**, not on machine learning or property prediction.
+
+> The Ewald Sum Matrix is defined as:
+>
+> $$
+> M_{ij}^{\text{ESM}} =
+> \begin{cases}
+> \frac{1}{2} \frac{Z_i^2}{\sqrt{\pi}} \text{erfc}(\sigma \alpha) & i = j \\
+> Z_i Z_j \left[ \sum_{\mathbf{n} \neq \mathbf{0} \cup (i=j)} \frac{\text{erfc}(\sigma |\mathbf{r}_{ij} + \mathbf{n}|)}{|\mathbf{r}_{ij} + \mathbf{n}|} - \frac{\text{erfc}(\sigma \alpha)}{\alpha} \right] + \frac{Z_i Z_j}{\Omega} \sum_{\mathbf{G} \neq 0} \frac{e^{-|\mathbf{G}|^2/(4\sigma^2)}}{|\mathbf{G}|^2} e^{i \mathbf{G} \cdot \mathbf{r}_{ij}} - \frac{\delta_{ij} Q^2}{2\Omega} \frac{e^{-|\mathbf{G}|^2/(4\sigma^2)}}{|\mathbf{G}|^2} \bigg|_{\mathbf{G} \to 0}
+> \end{cases}
+> $$
+>
+> where:
+> - $Z_i$: atomic number
+> - $\mathbf{r}_{ij}$: distance vector between atoms $i$ and $j$
+> - $\mathbf{n}$: lattice translation vectors
+> - $\mathbf{G}$: reciprocal lattice vectors
+> - $\sigma$: screening parameter
+> - $\Omega$: unit cell volume
+> - $\alpha$: convergence parameter
+>
+> DScribe implements a **corrected version** of the ESM that fixes an inconsistency in the original formulation (see reference [1]), ensuring that:
+> - The interaction vanishes when one atom has zero charge
+> - The charged-cell correction is properly decoupled from off-diagonal terms
+>
+> This makes the ESM physically consistent and suitable for high-throughput screening.
 
 > ## Solution
 >
 > ~~~python
 > import numpy as np
-> from ase import Atoms
-> from ase.build import bulk
 > import matplotlib.pyplot as plt
-> from mpl_toolkits.axes_grid1 import make_axes_locatable
-> from dscribe.descriptors import SineMatrix
+> import seaborn as sns
+> from ase.build import bulk
+> from dscribe.descriptors import EwaldSumMatrix
 >
 > # ========================================
-> # 1. Build FCC Aluminum Crystal
+> # 1. Build Crystalline Materials
 > # ========================================
-> print("Creating FCC aluminum crystal...\n")
-> system = bulk("Al", "fcc", cubic=False)  # Standard FCC unit cell
-> print(f"Al FCC structure: {len(system)} atoms, lattice vectors:")
-> print(system.get_cell())
+> print("Building crystalline materials...\n")
+>
+> materials = [
+>     bulk("NaCl", "rocksalt", a=5.64),        # Ionic crystal
+>     bulk("CsCl", "cesium_chloride", a=4.12, cubic=True),  # Another ionic structure
+>     bulk("Si", "diamond", a=5.43),           # Covalent crystal
+>     bulk("GaAs", "zincblende", a=5.65),      # Polar covalent
+>     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite with polarity
+> ]
+>
+> names = ["NaCl", "CsCl", "Si", "GaAs", "ZnO"]
+>
+> for i, name in enumerate(names):
+>     natoms = len(materials[i])
+>     formula = materials[i].get_chemical_formula()
+>     print(f"{name}: {formula}, atoms = {natoms}, periodic = {materials[i].pbc}")
 >
 > # ========================================
-> # 2. Setup Sine Matrix Descriptor
+> # 2. Setup Ewald Sum Matrix Descriptor
 > # ========================================
-> print("\nSetting up Sine Matrix descriptor for pairwise interaction...")
+> print("\nSetting up Ewald Sum Matrix descriptor...")
 >
-> sm = SineMatrix(
->     n_atoms_max=2,           # We will have 2 atoms: one fixed, one moving
->     permutation="none",      # Keep order: interaction is M[0,1]
->     sparse=False             # Return dense array
+> esm = EwaldSumMatrix(
+>     n_atoms_max=8,           # Maximum number of atoms in unit cell
+>     permutation="none",      # Keep original atom order
+>     sparse=False,            # Return dense matrix
+>     rcut=10.0,               # Real-space cutoff (Å)
+>     sigma=1.0,               # Screening parameter
+>     eta=2.5                  # Ewald convergence parameter (alpha)
 > )
 >
-> # ========================================
-> # 3. Calculate Interaction Map in xy-Plane
-> # ========================================
-> print("\nComputing interaction map in the xy-plane (z=0)...")
+> # Compute Ewald Sum Matrices
+> esm_matrices = esm.create(materials, flatten=False)  # Keep as matrices
+> print(f"Ewald Sum Matrix output shape: {esm_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
 >
-> n = 100  # Grid resolution
-> d = 10   # Grid size in Å
-> grid = np.zeros((n, n))
-> values = np.linspace(0, d, n)
->
-> for ix, x in enumerate(values):
->     for iy, y in enumerate(values):
->         # Moving test atom
->         test_atom = Atoms("Al", positions=[[x, y, 0]])
->         # Combine with original FCC system
->         extended_system = system.copy() + test_atom
->         # Compute Sine Matrix
->         sm_flat = sm.create(extended_system)
->         sm_matrix = sm.unflatten(sm_flat)[0]  # Extract first sample
->         # Get interaction between atom 0 (in FCC) and atom 1 (test atom)
->         interaction = sm_matrix[0, 1]
->         grid[ix, iy] = interaction
->
-> print(f"Interaction map computed: {n}x{n} grid, range [{grid.min():.2f}, {grid.max():.2f}]")
+> # Also create flattened version for comparison
+> fingerprints = esm.create(materials, flatten=True)
+> print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
 >
 > # ========================================
-> # 4. Visualize Interaction Pattern
+> # 3. Analyze ESM Structure
 > # ========================================
-> print("\nPlotting interaction map...")
+> for i, name in enumerate(names):
+>     M = esm_matrices[i]
+>     n_actual = len(materials[i])
 >
-> maxval = 150  # Clip for better visualization
-> np.clip(grid, a_min=None, a_max=maxval, out=grid)
+>     print(f"\n--- {name} Ewald Sum Matrix Summary ---")
+>     diag_mean = np.diag(M)[:n_actual].mean()
+>     off_diag_vals = M[~np.eye(M.shape[0], dtype=bool)]  # All off-diagonal
+>     off_diag_mean = off_diag_vals.mean()
+>     print(f"  Diagonal (self-energy) mean: {diag_mean:.3f}")
+>     print(f"  Off-diagonal (interaction) mean: {off_diag_mean:.3f}")
+>     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
 >
-> fig, ax = plt.subplots(figsize=(6, 5))
-> c1 = ax.contourf(values, values, grid, levels=500, cmap="Blues")
-> ax.contour(values, values, grid, levels=5, colors="k", linewidths=0.5, alpha=0.5)
+> # ========================================
+> # 4. Visualize ESM Matrices
+> # ========================================
+> fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+> axes = axes.flatten()
 >
-> # Add colorbar
-> divider = make_axes_locatable(ax)
-> cax = divider.append_axes("right", size="5%", pad=0.2)
-> cbar = plt.colorbar(c1, cax=cax, ticks=[grid.min(), grid.max()])
-> cbar.set_label("Sine Matrix Interaction Strength", rotation=90, labelpad=10)
+> for i, name in enumerate(names):
+>     M = esm_matrices[i]
+>     sns.heatmap(
+>         M,
+>         ax=axes[i],
+>         cmap="RdBu_r",
+>         cbar=True,
+>         square=True,
+>         center=0.0,
+>         cbar_kws={"shrink": 0.8}
+>     )
+>     axes[i].set_title(f"{name} ESM")
 >
-> # Format plot
-> ax.set_aspect('equal')
-> ax.set_xlabel("x (Å)")
-> ax.set_ylabel("y (Å)")
-> ax.set_title("Al–Al Interaction in FCC Crystal (z = 0 Å)")
+> # Remove last subplot
+> fig.delaxes(axes[-1])
 >
+> plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
 > plt.tight_layout()
-> plt.savefig("fig/al_interaction_map.png", dpi=150, bbox_inches='tight')
+> plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
 > plt.show()
 >
 > # ========================================
-> # 5. Discussion
+> # 5. Compare Flattened Fingerprints
 > # ========================================
-> print("\n💡 Key Observations:")
-> print("  • Bright spots show strong interactions at FCC lattice sites.")
-> print("  • Symmetry matches the underlying cubic lattice.")
-> print("  • Interaction decays with distance and is modulated by periodicity.")
-> print("  • The Sine Matrix captures long-range, translationally invariant atomic influence.")
+> plt.figure(figsize=(10, 6))
+> x_pos = np.arange(fingerprints.shape[1])
+>
+> colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
+> for i, name in enumerate(names):
+>     plt.plot(x_pos, fingerprints[i], color=colors[i], label=name, linewidth=1.5, alpha=0.8)
+>
+> plt.xlabel("Feature Index (Flattened ESM)", fontsize=12)
+> plt.ylabel("Descriptor Value", fontsize=12)
+> plt.title("Comparison of Flattened Ewald Sum Matrix Fingerprints", fontsize=13)
+> plt.legend()
+> plt.grid(True, alpha=0.3)
+> plt.tight_layout()
+> plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
+> plt.show()
+>
+> # ========================================
+> # 6. Compute Pairwise Similarity
+> # ========================================
+> print("\nPairwise Cosine Similarity Between ESM Fingerprints:")
+> from sklearn.metrics.pairwise import cosine_similarity
+>
+> sim_matrix = cosine_similarity(fingerprints)
+> np.set_printoptions(precision=3, suppress=True)
+> print("Similarity matrix:")
+> print(sim_matrix)
+>
+> # Heatmap of similarity
+> plt.figure(figsize=(6, 5))
+> sns.heatmap(
+>     sim_matrix,
+>     annot=True,
+>     xticklabels=names,
+>     yticklabels=names,
+>     cmap="Reds",
+>     vmin=0.5, vmax=1.0,
+>     fmt=".3f"
+> )
+> plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
+> plt.tight_layout()
+> plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
+> plt.show()
 > ~~~
 > {: .python}
 {: .solution}
 {: .challenge}
-
-
