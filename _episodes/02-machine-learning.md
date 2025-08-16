@@ -403,6 +403,7 @@ Coulomb matrix with periodic boundary conditions (not recommended):
 ~~~
 {: .output}
 
+
 The sine matrix captures features of interacting atoms in a periodic system with a very low computational cost. The matrix elements are defined by
 
 $$
@@ -446,10 +447,14 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > # ========================================
 > > print("Building crystalline materials...\n")
 > >
+> > # Note: 'cesium_chloride' is not supported in ASE; using 'bcc' template with manual symbol assignment
+> > cscl = bulk("Cs", "bcc", a=4.12, cubic=True)
+> > cscl.set_chemical_symbols(["Cs", "Cl"])  # Change second atom to Cl
+> >
 > > materials = [
 > >     bulk("Si", "diamond", a=5.43),           # Diamond cubic
 > >     bulk("NaCl", "rocksalt", a=5.64),        # Rocksalt
-> >     bulk("CsCl", "cesium_chloride", a=4.12, cubic=True),  # CsCl structure
+> >     cscl,                                    # CsCl structure (fixed)
 > >     bulk("GaAs", "zincblende", a=5.65),      # Zincblende
 > >     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite
 > > ]
