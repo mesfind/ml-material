@@ -5,14 +5,14 @@ exercises: 0
 questions:
 - "What are the fundamental concepts in ML I can use in sklearn framewrok ?"
 - "How do I write documentation for my ML code?"
-- "How do I train and test ML models for Physical Sciences Problems?"
+- "How do I train and test ML models for material Sciences Problems?"
 objectives:
 - "Gain an understanding of fundamental machine learning concepts relevant to material sciences."
 - "Develop proficiency in optimizing data preprocessing techniques for machine learning tasks in Python."
 - "Learn and apply best practices for training, evaluating, and interpreting machine learning models in the domain of material sciences."
 - Apply **similarity metrics** (e.g., cosine similarity) to quantify structural resemblance
 keypoints:
-- "Data representations are crucial for ML in material science
+- "Data representations are crucial for ML in material science"
 - "ML algorithms like linear regression, k-nearest neighbors,support vector Machine, xgboost and random forests are vital algorithms"
 - "Supervised learning is a popular ML approach, with decision trees, random forests, and neural networks being widely used"
 - "Fundamentals of data engineering are crucial for building robust ML pipelines, including data storage, processing, and serving"
