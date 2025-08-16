@@ -620,10 +620,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > >
 > > # 2. Setup Ewald Sum Matrix Descriptor
 > > esm = EwaldSumMatrix(
-> >     n_atoms_max=6,           # Max atoms in unit cell
-> >     permutation="none",      # Preserve atom order
-> >     sigma=1.0,               # Screening parameter
-> >     alpha=2.5                # Ewald convergence parameter (replaces r_cut)
+> >     n_atoms_max=6
 > > )
 > >
 > > # 3. Create ESM for Single System
