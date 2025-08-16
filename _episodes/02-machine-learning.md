@@ -199,14 +199,14 @@ The use of parallelization via the `n_jobs` parameter demonstrates scalability f
 
  Coulomb Matrix (CM)   is a simple global descriptor which mimics the electrostatic interaction between nuclei. Coulomb matrix is calculated with the equation below.
 
-\begin{split}\begin{equation}
+$$
 M_{ij}^\mathrm{Coulomb}=\left\{
     \begin{matrix}
     0.5 Z_i^{2.4} & \text{for } i = j \\
         \frac{Z_i Z_j}{R_{ij}} & \text{for } i \neq j
     \end{matrix}
     \right.
-\end{equation}\end{split}
+$$
 
 In the matrix above the first row corresponds to carbon (C) in methanol interacting with all the other atoms (columns 2-5) and itself (column 1). Likewise, the first column displays the same numbers, since the matrix is symmetric. Furthermore, the second row (column) corresponds to oxygen and the remaining rows (columns) correspond to hydrogen (H). Can you determine which one is which?
 
