@@ -302,3 +302,107 @@ Eigenspectrum of Coulomb matrix:
 The descriptor is computed both for individual molecules and batches, with support for parallel computation via the n_jobs parameter to improve efficiency on multiple structures.
 
 This approach exemplifies how molecular structure data can be systematically converted into machine-learning-ready descriptors while handling permutation symmetries and computational performance, facilitating tasks such as property prediction and molecular similarity analysis in cheminformatics and materials informatics.
+
+## invariance tests (translation, rotation, permutation)
+
+Incorporating the invariance tests (translation, rotation, permutation) of the methanol molecule, as well as  showing that the Coulomb Matrix descriptor is not designed for periodic systems (pbc set to True). The following code uses ASE methods to manipulate the molecule and demonstrates that the Coulomb matrix remains invariant or changes accordingly.
+~~~
+from dscribe.descriptors import CoulombMatrix
+from ase.build import molecule
+import numpy as np
+
+# Build methanol molecule
+methanol = molecule("CH3OH")
+
+# Initialize Coulomb Matrix descriptor with permutation sorted by L2 norm (invariance)
+cm = CoulombMatrix(n_atoms_max=6, permutation="sorted_l2")
+
+# Original Coulomb matrix
+cm_methanol = cm.create(methanol)
+print("Original Coulomb matrix:")
+print(cm_methanol)
+
+# --- Invariance tests ---
+
+# Translation: translate methanol by vector (5, 7, 9)
+methanol_translated = methanol.copy()
+methanol_translated.translate((5, 7, 9))
+cm_methanol_translated = cm.create(methanol_translated)
+print("\nCoulomb matrix after translation:")
+print(cm_methanol_translated)
+
+# Rotation: rotate methanol 90 degrees about the z-axis around origin
+methanol_rotated = methanol.copy()
+methanol_rotated.rotate(90, 'z', center=(0, 0, 0))
+cm_methanol_rotated = cm.create(methanol_rotated)
+print("\nCoulomb matrix after rotation:")
+print(cm_methanol_rotated)
+
+# Permutation: reverse atom order (upside down)
+upside_down_methanol = methanol.copy()[::-1]
+cm_methanol_permuted = cm.create(upside_down_methanol)
+print("\nCoulomb matrix after permutation (atom reorder):")
+print(cm_methanol_permuted)
+
+# --- Periodic boundary conditions (not supported) ---
+
+# Set periodic boundary conditions (PBC) and unit cell (not for molecules)
+methanol_pbc = methanol.copy()
+methanol_pbc.set_pbc([True, True, True])
+methanol_pbc.set_cell([[10.0, 0.0, 0.0],
+                       [0.0, 10.0, 0.0],
+                       [0.0, 0.0, 10.0]])
+
+cm_no_perm = CoulombMatrix(n_atoms_max=6)  # Default permutation
+
+cm_methanol_pbc = cm_no_perm.create(methanol_pbc)
+print("\nCoulomb matrix with periodic boundary conditions (not recommended):")
+print(cm_methanol_pbc)
+
+~~~
+{: .python}
+
+~~~
+Original Coulomb matrix:
+[73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+
+Coulomb matrix after translation:
+[73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+
+Coulomb matrix after rotation:
+[73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+
+Coulomb matrix after permutation (atom reorder):
+[73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+
+Coulomb matrix with periodic boundary conditions (not recommended):
+[73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+~~~
+{: .output}
+
+
