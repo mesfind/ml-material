@@ -414,14 +414,11 @@ M_{ij}^\mathrm{sine} =
 $$
 
 where:
-- $ Z_i $: atomic number
-- $ \mathbf{R}_i $: position of atom $ i $
-- $ \mathbf{B} $: matrix of lattice vectors
+- $Z_i$: atomic number
+- $\mathbf{R}_i$: position of atom $ i $
+- $\mathbf{B}$: matrix of lattice vectors
 
 It is part of the **Crystal Metric Representations (CMR)** family and is designed for fast, scalable materials comparison.
-
-
-
 
 > ## Exercise: Generating Sine Matrix Fingerprints
 >
@@ -434,7 +431,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > 5. Compare fingerprints across different crystal structures (e.g., rocksalt vs. diamond).
 >
 > This exercise focuses exclusively on **fingerprint generation**, not on property prediction or model training.
-
+> 
 > > ## Solution
 > >
 > > ~~~
