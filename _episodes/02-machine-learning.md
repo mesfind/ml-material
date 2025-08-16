@@ -402,4 +402,17 @@ Coulomb matrix with periodic boundary conditions (not recommended):
 ~~~
 {: .output}
 
+## Exercise on Sine matrix
+
+The sine matrix [1] captures features of interacting atoms in a periodic system with a very low computational cost. The matrix elements are defined by
+
+$$
+M_{ij}^\mathrm{sine}=\left\{
+    \begin{matrix}
+    0.5 Z_i^{2.4} & \text{for } i = j \\
+        \frac{Z_i Z_j}{\lvert \mathbf{B} \cdot \sum_{k=\{x,y,z\}} \hat{\mathbf{e}}_k \sin^2 \left( \pi \hat{\mathbf{e}}_k \mathbf{B}^{-1} \cdot \left( \mathbf{R}_{i} - \mathbf{R}_{j} \right) \right)\rvert} & \text{for } i \neq j
+    \end{matrix}
+    \right.
+$$
+
 
