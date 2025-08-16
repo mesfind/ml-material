@@ -492,8 +492,11 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > >     n_actual = len(materials[i])
 > >
 > >     print(f"\n--- {name} Sine Matrix Summary ---")
-> >     print(f"  Diagonal (self-interaction) mean: {np.diag(M)[:n_actual].mean():.3f}")
-> >     print(f"  Off-diagonal (interaction) mean: {M[np.nonzero(~np.eye(M.shape[0]))].mean():.3f}")
+> >     diag_mean = np.diag(M)[:n_actual].mean()
+> >     off_diag_vals = M[~np.eye(M.shape[0], dtype=bool)]  # Off-diagonal elements only
+> >     off_diag_mean = off_diag_vals.mean()
+> >     print(f"  Diagonal (self-interaction) mean: {diag_mean:.3f}")
+> >     print(f"  Off-diagonal (interaction) mean: {off_diag_mean:.3f}")
 > >     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
 > >
 > > # ========================================
