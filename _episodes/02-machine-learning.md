@@ -25,6 +25,153 @@ keypoints:
 
 </script>
 
+# Materials Properties Datasets
+
+These datasets compute properties of various materials.
+
+dc.molnet.load_bandgap : V2
+dc.molnet.load_perovskite : V2
+dc.molnet.load_mp_formation_energy : V2
+dc.molnet.load_mp_metallicity : V2
+[3] Lopez, Steven A., et al. "The Harvard organic photovoltaic dataset." Scientific data 3.1 (2016): 1-7.
+
+[4] Ramsundar, Bharath, et al. "Is multitask deep learning practical for pharma?." Journal of chemical information and modeling 57.8 (2017): 2068-2076.
+
+## What is a Fingerprint?
+
+Deep learning models almost always take arrays of numbers as their inputs. If we want to process molecules with them, we somehow need to represent each molecule as one or more arrays of numbers.
+
+Many (but not all) types of models require their inputs to have a fixed size. This can be a challenge for molecules, since different molecules have different numbers of atoms. If we want to use these types of models, we somehow need to represent variable sized molecules with fixed sized arrays.
+
+Fingerprints are designed to address these problems. A fingerprint is a fixed length array, where different elements indicate the presence of different features in the molecule. If two molecules have similar fingerprints, that indicates they contain many of the same features, and therefore will likely have similar chemistry.
+
+
+## DScribe
+
+DScribe is a Python package for transforming atomic structures into fixed-size numerical fingerprints. These fingerprints are often called "descriptors" and they can be used in various tasks, including machine learning, visualization, similarity analysis, etc.
+
+
+~~~
+# https://doi.org/10.1016/j.cpc.2019.106949
+#!pip install dscribe
+import numpy as np
+from ase.build import molecule
+from dscribe.descriptors import SOAP, CoulombMatrix
+
+# ========================================
+# 1. Define Atomic Structures
+# ========================================
+# Create a list of molecular systems using ASE's molecule builder.
+# These are neutral molecules with optimized geometries (approximate).
+samples = [
+    molecule("H2O"),  # Water
+    molecule("NO2"),  # Nitrogen dioxide
+    molecule("CO2")   # Carbon dioxide
+]
+
+# Optional: Print basic info about each molecule
+for i, mol in enumerate(samples):
+    print(f"Sample {i}: {mol.get_chemical_formula()} with {len(mol)} atoms")
+
+# ========================================
+# 2. Setup Descriptors
+# ========================================
+# Coulomb Matrix (CM): Encodes molecular structure into a fixed-size matrix
+# - n_atoms_max: maximum number of atoms in any molecule (here, all have 3)
+# - permutation: "sorted_l2" sorts rows/columns by L2 norm to ensure consistency
+cm_desc = CoulombMatrix(
+    n_atoms_max=3,
+    permutation="sorted_l2"
+)
+
+# Smooth Overlap of Atomic Positions (SOAP): Local environment descriptor
+# - species: list of all chemical elements expected in the dataset
+# - r_cut: radial cutoff for local environments (in Å)
+# - n_max, l_max: basis set size for SOAP expansion
+# - crossover: allows cross-species terms (e.g., C-H interactions)
+soap_desc = SOAP(
+    species=["C", "H", "O", "N"],
+    r_cut=5.0,
+    n_max=8,
+    l_max=6,
+    crossover=True
+)
+
+# ========================================
+# 3. Generate Descriptors for Single System
+# ========================================
+# Example: Compute descriptors for the first molecule (H2O)
+water = samples[0]
+
+# Coulomb Matrix for the entire molecule (shape: [n_atoms_max, n_atoms_max])
+coulomb_matrix = cm_desc.create(water)
+print(f"\nCoulomb Matrix shape for H2O: {coulomb_matrix.shape}")
+print("Coulomb Matrix:\n", coulomb_matrix)
+
+# SOAP descriptor for specific atom(s). Here, compute for atom at index 0 (oxygen in H2O)
+soap = soap_desc.create(water, centers=[0])  # Only compute for center(s) at index 0
+print(f"SOAP descriptor shape for O in H2O: {soap.shape}")
+
+# ========================================
+# 4. Batch Descriptor Calculation (Multiple Systems)
+# ========================================
+# Compute Coulomb matrices for all samples at once
+coulomb_matrices = cm_desc.create(samples)  # Sequential
+print(f"Batch Coulomb matrices shape: {coulomb_matrices.shape}")
+
+# Parallelized computation using multiple processes (n_jobs=3)
+coulomb_matrices_parallel = cm_desc.create(samples, n_jobs=3)
+print(f"Parallel Coulomb matrices shape: {coulomb_matrices_parallel.shape}")
+
+# Find indices of oxygen atoms in each molecule
+oxygen_indices = [np.where(mol.get_atomic_numbers() == 8)[0] for mol in samples]
+print(f"Oxygen atom indices in each molecule: {oxygen_indices}")
+
+# Compute SOAP descriptors only for oxygen atoms in all molecules, in parallel
+oxygen_soap = soap_desc.create(samples, oxygen_indices, n_jobs=3)
+print(f"SOAP descriptors for oxygen atoms shape: {oxygen_soap.shape}")
+
+# ========================================
+# 5. Compute Derivatives (For Force Learning or Optimization)
+# ========================================
+# Calculate derivatives of SOAP with respect to atomic positions
+# This returns dK/dR (derivatives) and optionally the descriptors themselves
+derivatives, descriptors = soap_desc.derivatives(
+    samples,
+    return_descriptor=True,
+    n_jobs=1  # Derivatives may not always support high parallelization; adjust as needed
+)
+
+print(f"Shape of SOAP derivatives: {derivatives.shape}")  # (n_samples, n_centers, 3, n_features)
+print(f"Shape of SOAP descriptors from derivatives call: {descriptors.shape}")
+
+# ========================================
+# Summary
+# ========================================
+print("\n--- Summary ---")
+print("Descriptors successfully computed:")
+print(f"- Coulomb Matrix: for {len(samples)} molecules → shape {coulomb_matrices.shape}")
+print(f"- SOAP: for selected atoms (e.g., O) → shape {oxygen_soap.shape}")
+print(f"- SOAP derivatives: useful for gradient-based models → shape {derivatives.shape}")
+~~~
+{: .python}
+
+
+
+## maml (MAterials Machine Learning)
+
+`maml`  is a Python package designed to offer convenient high-level interfaces that simplify machine learning applications in materials science. Its purpose is not to replicate existing functionalities found in other software but to build upon well-established libraries like scikit-learn and TensorFlow for machine learning methods. Additionally, it integrates with specialized materials science tools such as pymatgen and matminer for tasks like crystal and molecule manipulation and feature construction.
+
+
+~~~
+
+~~~
+{: .python}
+
+~~~
+test_dataset.y
+~~~
+{: .python}
 
 # Machine Learning Concepts
 
