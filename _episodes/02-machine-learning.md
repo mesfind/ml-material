@@ -522,7 +522,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > >
 > > plt.suptitle("Sine Matrix Fingerprints for Crystalline Materials", fontsize=14)
 > > plt.tight_layout()
-> > plt.savefig("fig/sine_matrix_heatmaps.png", dpi=150)
+> > plt.savefig("sine_matrix_heatmaps.png", dpi=150)
 > > plt.show()
 > >
 > > # ========================================
@@ -541,7 +541,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > plt.legend()
 > > plt.grid(True, alpha=0.3)
 > > plt.tight_layout()
-> > plt.savefig("fig/sine_matrix_fingerprints.png", dpi=150)
+> > plt.savefig("sine_matrix_fingerprints.png", dpi=150)
 > > plt.show()
 > >
 > > # ========================================
