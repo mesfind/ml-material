@@ -59,6 +59,12 @@ DScribe is a Python package for transforming atomic structures into fixed-size n
  - Local Many-body Tensor Representation
  - Valle-Oganov descriptor
 
+DScribe provides methods to transform atomic structures into fixed-size numeric vectors. These vectors are built in a way that they efficiently summarize the contents of the input structure. Such a transformation is very useful for various purposes, e.g.
+
+  - Input for supervised machine learning models, e.g. regression.
+  - Input for unsupervised machine learning models, e.g. clustering.
+  - Visualizing and analyzing a local chemical environment.
+  - Measuring similarity of structures or local structural sites. etc.
 
 ~~~
 # https://doi.org/10.1016/j.cpc.2019.106949
@@ -189,193 +195,66 @@ Furthermore, analytical derivatives of the SOAP descriptor with respect to atomi
 
 The use of parallelization via the `n_jobs` parameter demonstrates scalability for larger datasets. Overall, this work establishes a reproducible pipeline for generating physically meaningful descriptors from molecular geometries, forming a foundation for subsequent applications in quantum property prediction, potential energy surface construction, and interpretative analysis in computational chemistry and materials informatics.
 
+## Coulomb Matrix (CM) 
 
-## ML Descriptors for Inorganic Materials
+ Coulomb Matrix (CM)   is a simple global descriptor which mimics the electrostatic interaction between nuclei. Coulomb matrix is calculated with the equation below.
 
-For **inorganic crystalline materials** (instead of molecules) replaces molecular systems with **bulk inorganic crystals**, computes **SOAP and Coulomb Matrix-like descriptors** (adapted for periodic systems), and reflects best practices in materials representation learning as follows:
+\begin{split}\begin{equation}
+M_{ij}^\mathrm{Coulomb}=\left\{
+    \begin{matrix}
+    0.5 Z_i^{2.4} & \text{for } i = j \\
+        \frac{Z_i Z_j}{R_{ij}} & \text{for } i \neq j
+    \end{matrix}
+    \right.
+\end{equation}\end{split}
 
+In the matrix above the first row corresponds to carbon (C) in methanol interacting with all the other atoms (columns 2-5) and itself (column 1). Likewise, the first column displays the same numbers, since the matrix is symmetric. Furthermore, the second row (column) corresponds to oxygen and the remaining rows (columns) correspond to hydrogen (H). Can you determine which one is which?
+
+Since the Coulomb Matrix was published in 2012 more sophisticated descriptors have been developed. However, CM still does a reasonably good job when comparing molecules with each other. Apart from that, it can be understood intuitively and is a good introduction to descriptors.
 ~~~
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, r2_score
-from ase.build import bulk
-from dscribe.descriptors import SOAP
+from dscribe.descriptors import CoulombMatrix
+# Setting up the CM descriptor
+cm = CoulombMatrix(n_atoms_max=6)
+# Create CM output for the system
+cm_methanol = cm.create(methanol)
 
-# ========================================
-# 1. Define Inorganic Crystalline Materials
-# ========================================
-print("Constructing bulk inorganic materials...")
-materials = [
-    bulk("Cu", "fcc", a=3.6),           # FCC copper
-    bulk("Si", "diamond", a=5.43),      # Diamond silicon
-    bulk("NaCl", "rocksalt", a=5.64)    # Rocksalt sodium chloride
-]
+print(cm_methanol)
 
-# True formation energies (eV/atom) from experimental or DFT data
-# Source: approximate values for demonstration
-formation_energies = np.array([
-    0.00,      # Cu (elemental reference)
-    -0.80,     # Si (from elemental Si)
-    -3.10      # NaCl (strong ionic bonding)
-])
+# Create output for multiple system
+samples = [molecule("H2O"), molecule("NO2"), molecule("CO2")]
+coulomb_matrices = cm.create(samples)            # Serial
+coulomb_matrices = cm.create(samples, n_jobs=2)  # Parallel
+# No sorting
+cm = CoulombMatrix(n_atoms_max=6, permutation='none')
 
-# Print material info
-for i, mat in enumerate(materials):
-    formula = mat.get_chemical_formula()
-    natoms = len(mat)
-    cellpar = mat.cell.cellpar()
-    print(f"Material {i}: {formula}, atoms = {natoms}, "
-          f"a ≈ {cellpar[0]:.2f} Å, E_form = {formation_energies[i]:.2f} eV/atom")
-# ========================================
-# 2. Setup SOAP Descriptor
-# ========================================
-print("\nSetting up SOAP descriptor...")
+cm_methanol = cm.create(methanol)
+print(methanol.get_chemical_symbols())
+print("in order of appearance", cm_methanol)
 
-soap_desc = SOAP(
-    species=["Cu", "Si", "Na", "Cl"],
-    r_cut=4.0,                    # Local environment radius
-    n_max=6,                      # Radial basis order
-    l_max=4,                      # Angular momentum cutoff
-    periodic=True,                # Handle PBCs
-    sparse=False                  # Dense output for ML
-)
-# ========================================
-# 3. Compute Averaged SOAP Descriptors
-# ========================================
-print("\n--- Computing Averaged SOAP Descriptors ---")
+# Sort by Euclidean (L2) norm.
+cm = CoulombMatrix(n_atoms_max=6, permutation='sorted_l2')
 
-X, y = [], formation_energies  # Features and targets
+cm_methanol = cm.create(methanol)
+print("default: sorted by L2-norm", cm_methanol)
 
-for i, mat in enumerate(materials):
-    formula = mat.get_chemical_formula()
-    
-    # ✅ Convert centers to list of integers
-    centers = list(range(len(mat)))
-    
-    # Compute SOAP for all atoms
-    soap_local = soap_desc.create(mat, centers=centers)
-    print(f"  {formula}: per-atom SOAP shape = {soap_local.shape}")
-    
-    # Average over atoms → global descriptor
-    soap_global = np.mean(soap_local, axis=0)
-    X.append(soap_global)
-
-# Convert to NumPy array
-X = np.array(X)  # Shape: (n_samples, n_features)
-y = np.array(y)  # Shape: (n_samples,)
-
-print(f"\nFinal feature matrix shape: {X.shape}")
-# ========================================
-# 3. Compute Averaged SOAP Descriptors
-# ========================================
-print("\n--- Computing Averaged SOAP Descriptors ---")
-
-X, y = [], formation_energies  # Features and targets
-
-for i, mat in enumerate(materials):
-    formula = mat.get_chemical_formula()
-    
-    # ✅ Convert centers to list of integers
-    centers = list(range(len(mat)))
-    
-    # Compute SOAP for all atoms
-    soap_local = soap_desc.create(mat, centers=centers)
-    print(f"  {formula}: per-atom SOAP shape = {soap_local.shape}")
-    
-    # Average over atoms → global descriptor
-    soap_global = np.mean(soap_local, axis=0)
-    X.append(soap_global)
-
-# Convert to NumPy array
-X = np.array(X)  # Shape: (n_samples, n_features)
-y = np.array(y)  # Shape: (n_samples,)
-
-print(f"\nFinal feature matrix shape: {X.shape}")
-# ========================================
-# 4. Train-Test Split (n=3 → use 2 for train, 1 for test)
-# ========================================
-print("\n--- Training Random Forest Regressor ---")
-
-# For n=3, use test_size=1/3
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.33, random_state=42, shuffle=True
+# Random
+cm = CoulombMatrix(
+    n_atoms_max=6,
+    permutation='random',
+    sigma=70,
+    seed=None
 )
 
-print(f"Training samples: {X_train.shape[0]}, Test samples: {X_test.shape[0]}")
+cm_methanol = cm.create(methanol)
+print("randomly sorted", cm_methanol)
 
-# Initialize and train Random Forest
-rf_model = RandomForestRegressor(
-    n_estimators=100,
-    max_depth=3,
-    random_state=42,
-    n_jobs=-1
+# Eigenspectrum
+cm = CoulombMatrix(
+    n_atoms_max=6,
+    permutation='eigenspectrum'
 )
 
-rf_model.fit(X_train, y_train)
-
-# Predictions
-y_pred_train = rf_model.predict(X_train)
-y_pred_test = rf_model.predict(X_test)
-
-# Metrics
-mae_train = mean_absolute_error(y_train, y_pred_train)
-mae_test = mean_absolute_error(y_test, y_pred_test)
-r2_test = r2_score(y_test, y_pred_test)
-
-print(f"Training MAE: {mae_train:.3f} eV/atom")
-print(f"Test MAE: {mae_test:.3f} eV/atom")
-print(f"Test R²: {r2_test:.3f}")
-# ========================================
-# 5. Feature Importance (Optional)
-# ========================================
-print("\n--- Feature Importance (Top 10) ---")
-importances = rf_model.feature_importances_
-top_indices = np.argsort(importances)[-10:][::-1]
-
-for idx in top_indices:
-    print(f"  Feature {idx}: importance = {importances[idx]:.4f}")
-# ========================================
-# 6. Plot Results
-# ========================================
-plt.figure(figsize=(8, 5))
-plt.scatter(y_train, y_pred_train, color='blue', label='Train', s=60, alpha=0.8)
-if len(y_test) > 0:
-    plt.scatter(y_test, y_pred_test, color='red', label='Test', s=60, edgecolor='k', linewidth=1)
-
-# Diagonal line
-min_val, max_val = min(min(y), min(y_pred_test)), max(max(y), max(y_pred_test))
-plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, label='Ideal')
-
-plt.xlabel("True Formation Energy (eV/atom)", fontsize=12)
-plt.ylabel("Predicted Formation Energy (eV/atom)", fontsize=12)
-plt.title("Random Forest: Predicted vs True Formation Energy", fontsize=13)
-plt.legend()
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
+cm_methanol = cm.create(methanol)
+print("eigenvalues", cm_methanol)
 ~~~
 {: .python}
-
-
-
-
-This work presents a computational framework for generating invariant descriptors of **inorganic crystalline solids**, including metallic (Cu), semiconducting (Si), and ionic (NaCl) materials, using atomistic representation learning. The **Smooth Overlap of Atomic Positions (SOAP)** descriptor is employed to encode the local chemical environments of atoms within periodic unit cells, with explicit support for crystalline boundary conditions through the `periodic=True` flag. Each atomic environment is characterized within a spherical cutoff radius of 4.0 Å, using a basis expansion truncated at radial order $ n_{\text{max}} = 6 $ and angular momentum $ l_{\text{max}} = 4 $, resulting in a 384-dimensional feature vector per atom.
-
-To obtain global material-level representations suitable for property prediction, the per-atom SOAP vectors are averaged within each unit cell, yielding a single, rotationally and translationally invariant descriptor per compound. This approach effectively captures structural motifs such as face-centered cubic (FCC), diamond cubic, and rocksalt arrangements, while remaining robust to atomic permutations. The resulting global descriptors form a matrix of dimension $ (3, 384) $, ready for use in machine learning models targeting bulk properties such as formation energy, band gap, or elastic moduli.
-
-Additionally, analytical derivatives of the SOAP kernel with respect to atomic positions are computed, enabling the integration of these descriptors into gradient-based models for predicting atomic forces—a critical component in the development of interatomic potentials via machine learning. Despite challenges in derivative computation for periodic systems, the framework demonstrates feasibility for small unit cells.
-
-This pipeline establishes a reproducible methodology for transforming crystal structures into fixed-size numerical representations, aligning with modern materials informatics workflows. It supports high-throughput screening, similarity analysis, and surrogate modeling in computational materials science, and can be extended to larger datasets such as those from the Materials Project or OQMD.
-
-### 🔍 Notes
-
-- **Coulomb Matrix** is not used here because it assumes isolated, finite systems (molecules). For solids, **SOAP**, **ACS**, or **MBTR** are preferred.
-- Use **averaging**, **max-pooling**, or **site-weighted aggregation** to go from local to global descriptors.
-- For disordered or large-cell materials, consider **sparse sampling** or **random subsampling** of atomic centers.
-
-
-
-
-
