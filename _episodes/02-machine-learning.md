@@ -574,11 +574,11 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > {: .solution}
 {: .challenge}
 
+### Ewald Sum Matrix for Periodic Crystals
 
-> ## Exercise: Exploring the Ewald Sum Matrix for Periodic Crystals
->
-> The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
->
+ The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
+
+> ##  Exercise: Ewald Sum Matrix
 > In this exercise, you will:
 >
 > 1. Construct a set of common ionic and covalent crystals using `ASE`.
