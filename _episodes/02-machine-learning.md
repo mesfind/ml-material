@@ -578,179 +578,105 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 
  The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
 
+
 > ## Exercise: Ewald Sum Matrix
-> 
-> The **Ewald Sum Matrix (ESM)** extends the concept of the Coulomb matrix to **periodic systems** by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
+>
+> The **Ewald Sum Matrix (ESM)** extends the Coulomb matrix to periodic systems by modeling the full electrostatic interaction between atomic cores in a crystal, including long-range Coulomb forces and a neutralizing background. It is particularly useful for capturing **charge distribution effects** and **electrostatic stability** in ionic materials.
 >
 > In this exercise, you will:
 >
-> 1. Construct a set of common ionic and covalent crystals using `ASE`.
-> 2. Compute the **Ewald Sum Matrix descriptor** for each material using `DScribe`.
-> 3. Analyze the structure of the ESM: diagonal (self-energy) vs. off-diagonal (interaction) terms.
-> 4. Visualize the ESM matrices and compare their patterns across different crystal types.
-> 5. Understand how ESM accounts for periodicity and charge neutrality via Ewald summation.
+> 1. Construct common crystals (NaCl, Al, Fe) using `ASE`.
+> 2. Set up the **Ewald Sum Matrix descriptor** using `DScribe`.
+> 3. Compute ESMs for single and multiple systems (serial and parallel).
+> 4. Explore how convergence parameters affect accuracy.
+> 5. Estimate the total electrostatic energy of a crystal from the ESM.
 >
-> This exercise focuses on **physical interpretation and descriptor generation**, not on machine learning or property prediction.
-> The Ewald Sum Matrix is defined as:
->
-> $$
-> M_{ij}^{\text{ESM}} =
-> \begin{cases}
-> \frac{1}{2} \frac{Z_i^2}{\sqrt{\pi}} \text{erfc}(\sigma \alpha) & i = j \\
-> Z_i Z_j \left[ \sum_{\mathbf{n} \neq \mathbf{0} \cup (i=j)} \frac{\text{erfc}(\sigma |\mathbf{r}_{ij} + \mathbf{n}|)}{|\mathbf{r}_{ij} + \mathbf{n}|} - \frac{\text{erfc}(\sigma \alpha)}{\alpha} \right] + \frac{Z_i Z_j}{\Omega} \sum_{\mathbf{G} \neq 0} \frac{e^{-|\mathbf{G}|^2/(4\sigma^2)}}{|\mathbf{G}|^2} e^{i \mathbf{G} \cdot \mathbf{r}_{ij}} - \frac{\delta_{ij} Q^2}{2\Omega} \frac{e^{-|\mathbf{G}|^2/(4\sigma^2)}}{|\mathbf{G}|^2} \bigg|_{\mathbf{G} \to 0}
-> \end{cases}
-> $$
->
-> where:
-> - $Z_i$: atomic number
-> - $\mathbf{r}_{ij}$: distance vector between atoms $i$ and $j$
-> - $\mathbf{n}$: lattice translation vectors
-> - $\mathbf{G}$: reciprocal lattice vectors
-> - $\sigma$: screening parameter
-> - $\Omega$: unit cell volume
-> - $\alpha$: convergence parameter
->
-> DScribe implements a **corrected version** of the ESM that fixes an inconsistency in the original formulation (see reference [1]), ensuring that:
-> - The interaction vanishes when one atom has zero charge
-> - The charged-cell correction is properly decoupled from off-diagonal terms
->
-> This makes the ESM physically consistent and suitable for high-throughput screening.
+> This exercise focuses on **descriptor generation and physical interpretation**, not on machine learning.
 > ## Solution
->
+> ~~~
 > > # Solution
-> > ~~~
-> > # 1. Build Crystalline Materials
-> > print("Building crystalline materials...\n")
-> > from ase import Atoms
+> >
+> > # 1. Import and Setup
+> > import numpy as np
+> > import scipy.constants
+> > import math
 > > from ase.build import bulk
 > > from dscribe.descriptors import EwaldSumMatrix
-> > import numpy as np
-> > import matplotlib.pyplot as plt
-> > import seaborn as sns
 > >
-> > # Manually build CsCl structure: simple cubic with two atoms
-> > a_cscl = 4.12
-> > cscl_cell = [[a_cscl, 0, 0], [0, a_cscl, 0], [0, 0, a_cscl]]
-> > cscl_atoms = Atoms(
-> >     symbols=["Cs", "Cl"],
-> >     positions=[[0, 0, 0], [a_cscl/2, a_cscl/2, a_cscl/2]],  # Cl at body center
-> >     cell=cscl_cell,
-> >     pbc=True
-> > )
+> > print("Setting up systems and descriptor...\n")
 > >
-> > materials = [
-> >     bulk("NaCl", "rocksalt", a=5.64),        # Ionic crystal
-> >     cscl_atoms,                               # CsCl structure (fixed)
-> >     bulk("Si", "diamond", a=5.43),           # Covalent crystal
-> >     bulk("GaAs", "zincblende", a=5.65),      # Polar covalent
-> >     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite with polarity
-> > ]
+> > # Create NaCl crystal
+> > nacl = bulk("NaCl", "rocksalt", a=5.64)
+> > al = bulk("Al", "fcc", a=4.046)
+> > fe = bulk("Fe", "bcc", a=2.856)
 > >
-> > names = ["NaCl", "CsCl", "Si", "GaAs", "ZnO"]
+> > # List of samples for batch processing
+> > samples = [nacl, al, fe]
+> > names = ["NaCl", "Al", "Fe"]
 > >
-> > for i, name in enumerate(names):
-> >     natoms = len(materials[i])
-> >     formula = materials[i].get_chemical_formula()
-> >     print(f"{name}: {formula}, atoms = {natoms}, periodic = {materials[i].pbc}")
+> > for name, atoms in zip(names, samples):
+> >     formula = atoms.get_chemical_formula()
+> >     print(f"{name}: {formula}, atoms = {len(atoms)}, cell = {atoms.cell.lengths()[0]:.3f} Å")
 > >
 > > # 2. Setup Ewald Sum Matrix Descriptor
-> > print("\nSetting up Ewald Sum Matrix descriptor...")
-> >
 > > esm = EwaldSumMatrix(
-> >     n_atoms_max=8,           # Maximum number of atoms in unit cell
-> >     permutation="none",      # Keep original atom order
-> >     sparse=False,            # Return dense matrix
-> >     sigma=1.0,               # Screening parameter for erf
-> >     alpha=2.5                # Ewald convergence parameter (was 'eta')
+> >     n_atoms_max=6,           # Max atoms in unit cell
+> >     permutation="none",      # Preserve atom order
+> >     sigma=1.0,               # Screening parameter
+> >     alpha=2.5                # Ewald convergence parameter (replaces r_cut)
 > > )
 > >
-> > # 3. Compute Ewald Sum Matrices
-> > esm_matrices = esm.create(materials, flatten=False)  # Keep as matrices
-> > print(f"Ewald Sum Matrix output shape: {esm_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
+> > # 3. Create ESM for Single System
+> > print("\nCreating ESM for NaCl...")
+> > nacl_ewald = esm.create(nacl, flatten=False)
+> > print(f"NaCl ESM shape: {nacl_ewald.shape}")
 > >
-> > # Also create flattened version for comparison
-> > fingerprints = esm.create(materials, flatten=True)
-> > print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
+> > # 4. Create ESM for Multiple Systems
+> > print("\nCreating ESM for multiple systems (serial)...")
+> > ewald_matrices = esm.create(samples, flatten=False)  # Serial
+> > print(f"Batch ESM shape: {ewald_matrices.shape}")
 > >
-> > # 4. Analyze ESM Structure
-> > for i, name in enumerate(names):
-> >     M = esm_matrices[i]
-> >     n_actual = len(materials[i])
+> > print("\nCreating ESM in parallel (n_jobs=2)...")
+> > ewald_matrices_parallel = esm.create(samples, n_jobs=2, flatten=False)
 > >
-> >     print(f"\n--- {name} Ewald Sum Matrix Summary ---")
-> >     diag_mean = np.diag(M)[:n_actual].mean()
-> >     off_diag_vals = M[~np.eye(M.shape[0], dtype=bool)]  # All off-diagonal
-> >     off_diag_mean = off_diag_vals.mean()
-> >     print(f"  Diagonal (self-energy) mean: {diag_mean:.3f}")
-> >     print(f"  Off-diagonal (interaction) mean: {off_diag_mean:.3f}")
-> >     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
+> > # 5. Vary Accuracy via Alpha (Convergence Parameter)
+> > print("\nTesting different convergence parameters (alpha)...")
+> > ewald_1 = esm.create(nacl, alpha=2.0)  # Lower accuracy
+> > ewald_2 = esm.create(nacl, alpha=4.0)  # Higher accuracy
+> > print(f"Low-alpha fingerprint norm: {np.linalg.norm(ewald_1):.2f}")
+> > print(f"High-alpha fingerprint norm: {np.linalg.norm(ewald_2):.2f}")
 > >
-> > # 5. Visualize ESM Matrices
-> > fig, axes = plt.subplots(2, 3, figsize=(12, 8))
-> > axes = axes.flatten()
-> >
-> > for i, name in enumerate(names):
-> >     M = esm_matrices[i]
-> >     sns.heatmap(
-> >         M,
-> >         ax=axes[i],
-> >         cmap="RdBu_r",
-> >         cbar=True,
-> >         square=True,
-> >         center=0.0,
-> >         cbar_kws={"shrink": 0.8}
-> >     )
-> >     axes[i].set_title(f"{name} ESM")
-> >
-> > # Remove last subplot
-> > fig.delaxes(axes[-1])
-> >
-> > plt.suptitle("Ewald Sum Matrix Fingerprints for Crystalline Materials", fontsize=14)
-> > plt.tight_layout()
-> > plt.savefig("fig/ewald_sum_matrix_heatmaps.png", dpi=150, bbox_inches='tight')
-> > plt.show()
-> >
-> > # 6. Compare Flattened Fingerprints
-> > plt.figure(figsize=(10, 6))
-> > x_pos = np.arange(fingerprints.shape[1])
-> >
-> > colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
-> > for i, name in enumerate(names):
-> >     plt.plot(x_pos, fingerprints[i], color=colors[i], label=name, linewidth=1.5, alpha=0.8)
-> >
-> > plt.xlabel("Feature Index (Flattened ESM)", fontsize=12)
-> > plt.ylabel("Descriptor Value", fontsize=12)
-> > plt.title("Comparison of Flattened Ewald Sum Matrix Fingerprints", fontsize=13)
-> > plt.legend()
-> > plt.grid(True, alpha=0.3)
-> > plt.tight_layout()
-> > plt.savefig("fig/ewald_sum_matrix_fingerprints.png", dpi=150, bbox_inches='tight')
-> > plt.show()
-> >
-> > # 7. Compute Pairwise Similarity
-> > print("\nPairwise Cosine Similarity Between ESM Fingerprints:")
-> > from sklearn.metrics.pairwise import cosine_similarity
-> >
-> > sim_matrix = cosine_similarity(fingerprints)
-> > np.set_printoptions(precision=3, suppress=True)
-> > print("Similarity matrix:")
-> > print(sim_matrix)
-> >
-> > # Heatmap of similarity
-> > plt.figure(figsize=(6, 5))
-> > sns.heatmap(
-> >     sim_matrix,
-> >     annot=True,
-> >     xticklabels=names,
-> >     yticklabels=names,
-> >     cmap="Reds",
-> >     vmin=0.5, vmax=1.0,
-> >     fmt=".3f"
+> > # 6. Calculate Total Electrostatic Energy
+> > print("\nCalculating total electrostatic energy for Al (example)...")
+> > # Use a symmetric system (Al is neutral, Z=3)
+> > ems = EwaldSumMatrix(
+> >     n_atoms_max=2,           # FCC Al has 1 atom conventional → expand or use 2-atom cell
+> >     permutation="none",
+> >     sigma=1.0,
+> >     alpha=3.0
 > > )
-> > plt.title("Cosine Similarity Between Ewald Sum Matrix Fingerprints")
-> > plt.tight_layout()
-> > plt.savefig("fig/ewald_sum_matrix_similarity.png", dpi=150, bbox_inches='tight')
-> > plt.show()
+> >
+> > # Use 2-atom cell to see interactions
+> > al_expanded = al * (2, 1, 1)  # Now has 2 atoms
+> > ems_out_flat = ems.create(al_expanded)
+> > ems_out = ems.unflatten(ems_out_flat)[0]  # Extract first (only) system
+> >
+> > # Total electrostatic energy ≈ sum of all entries divided by 2 (each interaction counted twice)
+> > # But: ESM includes self-energy and interaction terms
+> > total_energy = ems_out.sum() / 2  # Each pair counted twice; self-terms once
+> >
+> > # Convert from atomic units (e²/Å) to eV
+> > conversion = 1e10 * scipy.constants.e / (4 * math.pi * scipy.constants.epsilon_0)
+> > total_energy_eV = total_energy * conversion
+> >
+> > print(f"Total electrostatic energy (approx): {total_energy_eV:.4f} eV")
+> >
+> > # 7. Summary
+> > print("\n💡 Key Points:")
+> > print("  • ESM captures long-range electrostatics in periodic systems.")
+> > print("  • Use 'alpha' to control real/reciprocal space balance.")
+> > print("  • Parallelization via 'n_jobs' speeds up batch processing.")
+> > print("  • Total energy can be estimated from sum of ESM entries (with care).")
 > > ~~~
 > > {: .python}
 > {: .solution}
