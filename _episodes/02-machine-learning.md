@@ -567,7 +567,7 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > > )
 > > plt.title("Cosine Similarity Between Sine Matrix Fingerprints")
 > > plt.tight_layout()
-> > plt.savefig("fig/sine_matrix_similarity.png", dpi=150)
+> > plt.savefig("sine_matrix_similarity.png", dpi=150)
 > > plt.show()
 > > ~~~
 > > {: .python}
