@@ -7,11 +7,12 @@ questions:
 - "How do I write documentation for my ML code?"
 - "How do I train and test ML models for Physical Sciences Problems?"
 objectives:
-- "Gain an understanding of fundamental machine learning concepts relevant to physical sciences."
+- "Gain an understanding of fundamental machine learning concepts relevant to material sciences."
 - "Develop proficiency in optimizing data preprocessing techniques for machine learning tasks in Python."
-- "Learn and apply best practices for training, evaluating, and interpreting machine learning models in the domain of physical sciences."
+- "Learn and apply best practices for training, evaluating, and interpreting machine learning models in the domain of material sciences."
+- Apply **similarity metrics** (e.g., cosine similarity) to quantify structural resemblance
 keypoints:
-- "Data representations are crucial for ML in science, including spatial data (vector, raster), point clouds, time series, graphs, and more"
+- "Data representations are crucial for ML in material science
 - "ML algorithms like linear regression, k-nearest neighbors,support vector Machine, xgboost and random forests are vital algorithms"
 - "Supervised learning is a popular ML approach, with decision trees, random forests, and neural networks being widely used"
 - "Fundamentals of data engineering are crucial for building robust ML pipelines, including data storage, processing, and serving"
@@ -402,17 +403,191 @@ Coulomb matrix with periodic boundary conditions (not recommended):
 ~~~
 {: .output}
 
-## Exercise on Sine matrix
-
 The sine matrix [1] captures features of interacting atoms in a periodic system with a very low computational cost. The matrix elements are defined by
 
 $$
-M_{ij}^\mathrm{sine}=\left\{
-    \begin{matrix}
-    0.5 Z_i^{2.4} & \text{for } i = j \\
-        \frac{Z_i Z_j}{\lvert \mathbf{B} \cdot \sum_{k=\{x,y,z\}} \hat{\mathbf{e}}_k \sin^2 \left( \pi \hat{\mathbf{e}}_k \mathbf{B}^{-1} \cdot \left( \mathbf{R}_{i} - \mathbf{R}_{j} \right) \right)\rvert} & \text{for } i \neq j
-    \end{matrix}
-    \right.
+M_{ij}^\mathrm{sine} =
+\begin{cases}
+0.5\, Z_i^{2.4} & i = j \\
+\displaystyle \frac{Z_i Z_j}{\left| \mathbf{B} \cdot \sum_{k=x,y,z} \hat{\mathbf{e}}_k \sin^2\left( \pi \hat{\mathbf{e}}_k \mathbf{B}^{-1} \cdot (\mathbf{R}_i - \mathbf{R}_j) \right) \right|} & i \neq j
+\end{cases}
 $$
+
+where:
+- $ Z_i $: atomic number
+- $ \mathbf{R}_i $: position of atom $ i $
+- $ \mathbf{B} $: matrix of lattice vectors
+
+It is part of the **Crystal Metric Representations (CMR)** family and is designed for fast, scalable materials comparison.
+
+
+
+
+> ## Exercise: Generating Sine Matrix Fingerprints
+>
+> The **Sine Matrix (SM)** is a simple, computationally efficient fingerprint for crystalline solids that captures long-range atomic interactions in a translationally and rotationally invariant manner. It is particularly useful for high-throughput screening and similarity analysis in materials databases. In this exercise, you will:
+>
+> 1. Construct a set of common inorganic crystals using `ASE`.
+> 2. Compute the **Sine Matrix descriptor** for each material using `DScribe`.
+> 3. Explore the structure of the Sine Matrix: diagonal (self-term) vs. off-diagonal (interaction) elements.
+> 4. Visualize the descriptor vectors (flattened matrices) using heatmaps and bar plots.
+> 5. Compare fingerprints across different crystal structures (e.g., rocksalt vs. diamond).
+>
+> This exercise focuses exclusively on **fingerprint generation**, not on property prediction or model training.
+
+> > ## Solution
+> >
+> > ~~~
+> > import numpy as np
+> > import matplotlib.pyplot as plt
+> > import seaborn as sns
+> > from ase.build import bulk
+> > from dscribe.descriptors import SineMatrix
+> >
+> > # ========================================
+> > # 1. Build Inorganic Crystal Structures
+> > # ========================================
+> > print("Building crystalline materials...\n")
+> >
+> > materials = [
+> >     bulk("Si", "diamond", a=5.43),           # Diamond cubic
+> >     bulk("NaCl", "rocksalt", a=5.64),        # Rocksalt
+> >     bulk("CsCl", "cesium_chloride", a=4.12, cubic=True),  # CsCl structure
+> >     bulk("GaAs", "zincblende", a=5.65),      # Zincblende
+> >     bulk("ZnO", "wurtzite", a=3.25, c=5.21)  # Wurtzite
+> > ]
+> >
+> > names = ["Si", "NaCl", "CsCl", "GaAs", "ZnO"]
+> >
+> > for i, name in enumerate(names):
+> >     natoms = len(materials[i])
+> >     formula = materials[i].get_chemical_formula()
+> >     print(f"{name}: {formula}, atoms = {natoms}, structure = {materials[i].pbc}")
+> >
+> > # ========================================
+> > # 2. Setup Sine Matrix Descriptor
+> > # ========================================
+> > print("\nSetting up Sine Matrix descriptor...")
+> >
+> > sm_desc = SineMatrix(
+> >     n_atoms_max=8,           # Maximum number of atoms in unit cell
+> >     permutation="none",      # Keep original atom order
+> >     flatten=False            # Keep matrix form for analysis
+> > )
+> >
+> > # Compute Sine Matrix for each material
+> > sine_matrices = sm_desc.create(materials)
+> > print(f"Sine Matrix output shape: {sine_matrices.shape}")  # (n_samples, n_atoms_max, n_atoms_max)
+> >
+> > # Also generate flattened version for use as fingerprint
+> > sm_desc_flat = SineMatrix(
+> >     n_atoms_max=8,
+> >     permutation="none",
+> >     flatten=True
+> > )
+> > fingerprints = sm_desc_flat.create(materials)
+> > print(f"Flattened fingerprint shape: {fingerprints.shape}")  # (n_samples, n_atoms_max^2)
+> >
+> > # ========================================
+> > # 3. Analyze Sine Matrix Structure
+> > # ========================================
+> > for i, name in enumerate(names):
+> >     M = sine_matrices[i]  # (8, 8)
+> >     n_actual = len(materials[i])
+> >
+> >     print(f"\n--- {name} Sine Matrix Summary ---")
+> >     print(f"  Diagonal (self-interaction) mean: {np.diag(M)[:n_actual].mean():.3f}")
+> >     print(f"  Off-diagonal (interaction) mean: {M[np.nonzero(~np.eye(M.shape[0]))].mean():.3f}")
+> >     print(f"  Max value: {M.max():.3f}, Min value: {M.min():.3f}")
+> >
+> > # ========================================
+> > # 4. Visualize Sine Matrices
+> > # ========================================
+> > fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+> > axes = axes.flatten()
+> >
+> > for i, name in enumerate(names):
+> >     M = sine_matrices[i]
+> >     sns.heatmap(
+> >         M,
+> >         ax=axes[i],
+> >         cmap="Blues",
+> >         cbar=True,
+> >         square=True,
+> >         cbar_kws={"shrink": 0.8}
+> >     )
+> >     axes[i].set_title(f"{name} Sine Matrix")
+> >
+> > # Remove last subplot
+> > fig.delaxes(axes[-1])
+> >
+> > plt.suptitle("Sine Matrix Fingerprints for Crystalline Materials", fontsize=14)
+> > plt.tight_layout()
+> > plt.savefig("fig/sine_matrix_heatmaps.png", dpi=150)
+> > plt.show()
+> >
+> > # ========================================
+> > # 5. Compare Flattened Fingerprints
+> > # ========================================
+> > plt.figure(figsize=(10, 6))
+> > x_pos = np.arange(fingerprints.shape[1])  # Feature index
+> >
+> > colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
+> > for i, name in enumerate(names):
+> >     plt.plot(x_pos, fingerprints[i], color=colors[i], label=name, linewidth=1.5, alpha=0.8)
+> >
+> > plt.xlabel("Feature Index (Flattened Sine Matrix)", fontsize=12)
+> > plt.ylabel("Descriptor Value", fontsize=12)
+> > plt.title("Comparison of Flattened Sine Matrix Fingerprints", fontsize=13)
+> > plt.legend()
+> > plt.grid(True, alpha=0.3)
+> > plt.tight_layout()
+> > plt.savefig("fig/sine_matrix_fingerprints.png", dpi=150)
+> > plt.show()
+> >
+> > # ========================================
+> > # 6. Compute Pairwise Similarity
+> > # ========================================
+> > print("\nPairwise Cosine Similarity Between Fingerprints:")
+> > from sklearn.metrics.pairwise import cosine_similarity
+> >
+> > sim_matrix = cosine_similarity(fingerprints)
+> > np.set_printoptions(precision=3, suppress=True)
+> > print("Similarity matrix:")
+> > print(sim_matrix)
+> >
+> > # Heatmap of similarity
+> > plt.figure(figsize=(6, 5))
+> > sns.heatmap(
+> >     sim_matrix,
+> >     annot=True,
+> >     xticklabels=names,
+> >     yticklabels=names,
+> >     cmap="Reds",
+> >     vmin=0.5, vmax=1.0
+> > )
+> > plt.title("Cosine Similarity Between Sine Matrix Fingerprints")
+> > plt.tight_layout()
+> > plt.savefig("fig/sine_matrix_similarity.png", dpi=150)
+> > plt.show()
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
+
+---
+
+### 📘 Educational Objectives
+
+This exercise enables students to:
+- Understand the **physical meaning** of the Sine Matrix elements:
+  - Diagonal: atomic self-energy term ∝ $ Z_i^{2.4} $
+  - Off-diagonal: interaction strength modulated by crystal geometry
+- Learn how to **generate invariant fingerprints** for periodic systems.
+- Use `DScribe` to compute descriptors in a reproducible way.
+- **Visualize and compare** structural fingerprints across materials.
+- Apply **similarity metrics** (e.g., cosine similarity) to quantify structural resemblance.
+
+
 
 
