@@ -613,7 +613,6 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > - The charged-cell correction is properly decoupled from off-diagonal terms
 >
 > This makes the ESM physically consistent and suitable for high-throughput screening.
-
 > ## Solution
 >
 > ~~~python
