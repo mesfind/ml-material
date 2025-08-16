@@ -211,50 +211,94 @@ M_{ij}^\mathrm{Coulomb}=\left\{
 In the matrix above the first row corresponds to carbon (C) in methanol interacting with all the other atoms (columns 2-5) and itself (column 1). Likewise, the first column displays the same numbers, since the matrix is symmetric. Furthermore, the second row (column) corresponds to oxygen and the remaining rows (columns) correspond to hydrogen (H). Can you determine which one is which?
 
 Since the Coulomb Matrix was published in 2012 more sophisticated descriptors have been developed. However, CM still does a reasonably good job when comparing molecules with each other. Apart from that, it can be understood intuitively and is a good introduction to descriptors.
+
 ~~~
 from dscribe.descriptors import CoulombMatrix
-# Setting up the CM descriptor
+from ase.build import molecule
+
+# Define methanol molecule (example)
+methanol = molecule("CH3OH")
+
+# Setting up the CM descriptor with max atoms 6
 cm = CoulombMatrix(n_atoms_max=6)
-# Create CM output for the system
+
+# Create CM output for methanol
 cm_methanol = cm.create(methanol)
+print("Coulomb matrix for methanol:\n", cm_methanol)
 
-print(cm_methanol)
-
-# Create output for multiple system
+# Create output for multiple systems
 samples = [molecule("H2O"), molecule("NO2"), molecule("CO2")]
-coulomb_matrices = cm.create(samples)            # Serial
-coulomb_matrices = cm.create(samples, n_jobs=2)  # Parallel
+
+# Serial creation
+coulomb_matrices_serial = cm.create(samples)
+print("Serial Coulomb matrices shape:", coulomb_matrices_serial.shape)
+
+# Parallel creation using 2 jobs (if supported)
+coulomb_matrices_parallel = cm.create(samples, n_jobs=2)
+print("Parallel Coulomb matrices shape:", coulomb_matrices_parallel.shape)
+
 # No sorting
-cm = CoulombMatrix(n_atoms_max=6, permutation='none')
+cm_none = CoulombMatrix(n_atoms_max=6, permutation='none')
+cm_methanol_none = cm_none.create(methanol)
+print("\nChemical symbols:", methanol.get_chemical_symbols())
+print("Coulomb matrix without sorting:\n", cm_methanol_none)
 
-cm_methanol = cm.create(methanol)
-print(methanol.get_chemical_symbols())
-print("in order of appearance", cm_methanol)
+# Sort by Euclidean (L2) norm
+cm_sorted = CoulombMatrix(n_atoms_max=6, permutation='sorted_l2')
+cm_methanol_sorted = cm_sorted.create(methanol)
+print("Coulomb matrix sorted by L2 norm:\n", cm_methanol_sorted)
 
-# Sort by Euclidean (L2) norm.
-cm = CoulombMatrix(n_atoms_max=6, permutation='sorted_l2')
-
-cm_methanol = cm.create(methanol)
-print("default: sorted by L2-norm", cm_methanol)
-
-# Random
-cm = CoulombMatrix(
-    n_atoms_max=6,
-    permutation='random',
-    sigma=70,
-    seed=None
-)
-
-cm_methanol = cm.create(methanol)
-print("randomly sorted", cm_methanol)
+# Random permutation
+cm_random = CoulombMatrix(n_atoms_max=6, permutation='random', sigma=70, seed=None)
+cm_methanol_random = cm_random.create(methanol)
+print("Coulomb matrix with random permutation:\n", cm_methanol_random)
 
 # Eigenspectrum
-cm = CoulombMatrix(
-    n_atoms_max=6,
-    permutation='eigenspectrum'
-)
-
-cm_methanol = cm.create(methanol)
-print("eigenvalues", cm_methanol)
+cm_eigen = CoulombMatrix(n_atoms_max=6, permutation='eigenspectrum')
+cm_methanol_eigen = cm_eigen.create(methanol)
+print("Eigenspectrum of Coulomb matrix:\n", cm_methanol_eigen)
 ~~~
 {: .python}
+
+~~~
+Coulomb matrix for methanol:
+ [73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+Serial Coulomb matrices shape: (3, 36)
+Parallel Coulomb matrices shape: (3, 36)
+
+Chemical symbols: ['C', 'O', 'H', 'H', 'H', 'H']
+Coulomb matrix without sorting:
+ [36.8581052  33.73297539  5.50690929  3.08170819  5.47078813  5.47078813
+ 33.73297539 73.51669472  3.96011613  8.24741496  3.808905    3.808905
+  5.50690929  3.96011613  0.5         0.35443545  0.56354208  0.56354208
+  3.08170819  8.24741496  0.35443545  0.5         0.42555057  0.42555057
+  5.47078813  3.808905    0.56354208  0.42555057  0.5         0.56068143
+  5.47078813  3.808905    0.56354208  0.42555057  0.56068143  0.5       ]
+Coulomb matrix sorted by L2 norm:
+ [73.51669472 33.73297539  8.24741496  3.96011613  3.808905    3.808905
+ 33.73297539 36.8581052   3.08170819  5.50690929  5.47078813  5.47078813
+  8.24741496  3.08170819  0.5         0.35443545  0.42555057  0.42555057
+  3.96011613  5.50690929  0.35443545  0.5         0.56354208  0.56354208
+  3.808905    5.47078813  0.42555057  0.56354208  0.5         0.56068143
+  3.808905    5.47078813  0.42555057  0.56354208  0.56068143  0.5       ]
+Coulomb matrix with random permutation:
+ [ 0.5         0.56354208  3.96011613  5.50690929  0.35443545  0.56354208
+  0.56354208  0.5         3.808905    5.47078813  0.42555057  0.56068143
+  3.96011613  3.808905   73.51669472 33.73297539  8.24741496  3.808905
+  5.50690929  5.47078813 33.73297539 36.8581052   3.08170819  5.47078813
+  0.35443545  0.42555057  8.24741496  3.08170819  0.5         0.42555057
+  0.56354208  0.56068143  3.808905    5.47078813  0.42555057  0.5       ]
+Eigenspectrum of Coulomb matrix:
+ [ 9.55802663e+01  1.81984422e+01 -8.84554212e-01 -4.08434021e-01
+ -6.06814298e-02 -5.02389071e-02]
+~~~
+{: .output}
+
+The descriptor is computed both for individual molecules and batches, with support for parallel computation via the n_jobs parameter to improve efficiency on multiple structures.
+
+This approach exemplifies how molecular structure data can be systematically converted into machine-learning-ready descriptors while handling permutation symmetries and computational performance, facilitating tasks such as property prediction and molecular similarity analysis in cheminformatics and materials informatics.
