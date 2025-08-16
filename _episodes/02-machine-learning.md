@@ -588,7 +588,6 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > 5. Understand how ESM accounts for periodicity and charge neutrality via Ewald summation.
 >
 > This exercise focuses on **physical interpretation and descriptor generation**, not on machine learning or property prediction.
-
 > The Ewald Sum Matrix is defined as:
 >
 > $$
