@@ -45,22 +45,28 @@ The Materials Project dataset is a widely used resource in machine learning (ML)
 
 The Materials Project API (often called the Materials API) is a programmatic interface to access the extensive dataset of materials properties and structures hosted by the Materials Project. It allows users to efficiently query and retrieve various computed materials data without manually using the web interface.
 
-The `mp_api` is the current official Python client package specifically developed for accessing the Materials Project dataset through their updated RESTful API. Unlike the older `pymatgen.ext.matproj` module, `mp_api` is designed to provide a direct and clean interface to the API using modern Python conventions.
+The `mp_api` is the current official Python client package specifically developed for accessing the Materials Project dataset through their updated RESTful API. Unlike the older `pymatgen.ext.matproj` module, `mp_api` is designed to provide a direct and clean interface to the API using modern Python conventions. The package is installed via pip with the command:
 
-Key points about the `mp_api` usage:
-- Installed via pip: `pip install mp_api`
-- Uses the `MPRester` class for all API interactions
+~~~bash
+pip install mp_api
+~~~
+- It uses the MPRester class to interact with the Materials Project API.
 
-Example to retrieve a material's structure:
+- Access requires logging in at the Materials Project profile site with your email or GitHub account to get your API key.
+
+- The MPRester class is used for all API interactions, preferably within a Python with context manager to properly manage sessions.
+
+- Example code to retrieve a material's structure (e.g., silicon with ID "mp-149"):
 
 ~~~
+#https://profile.materialsproject.org 
 from mp_api.client import MPRester
-
-with MPRester("your_api_key_here") as mpr:
+api_key = "your_api_key_here"
+with MPRester(api_key) as mpr:
     structure = mpr.get_structure_by_material_id("mp-1234")
     bandstructure = mpr.get_bandstructure_by_material_id("mp-1234")
 ~~~
-{: .pythno}
+{: .python}
 
 ## 2) OMol25 (Open Molecules 2025)
 
