@@ -787,3 +787,304 @@ The energies obtained from the Lennard-Jones two-atom system as a function of in
 In the plotted energy vs. distance graph, you will see a smooth curve starting at a higher energy around shorter distances (due to strong repulsion), dipping to a minimum energy near the equilibrium separation (around 3.0 Å for the parameters used), and then slowly increasing as the distance increases (weaker attraction).
 
 This energy profile validates the dataset by demonstrating the physically meaningful behavior of the system’s interaction potential, which the machine learning model aims to learn and reproduce.
+
+### Training
+
+Here is a clear, concise rewrite of the training section:
+
+***
+
+### Training
+
+The training example uses **PyTorch**, which must be installed to run the code. The full PyTorch script is available at *examples/forces_and_energies/training_pytorch.py* in the GitHub repository. An equivalent TensorFlow implementation, contributed by xScoschx, can be found at *examples/forces_and_energies/training_tensorflow.py*.
+
+We begin by loading and preparing the dataset. The SOAP descriptors and their derivatives, energies, and forces are loaded from the saved NumPy files. To improve learning efficiency, the input features (descriptors) and their derivatives are standardized using the training subset. A subset of 30 equally spaced samples is selected for training, with 20% reserved for validation via random splitting. The corresponding data arrays are then converted into PyTorch tensors, with training and validation sets for descriptors, energies, forces, and descriptor derivatives.
+
+~~~
+import numpy as np
+import torch
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# Set random seed for reproducibility
+torch.manual_seed(7)
+
+# Load dataset from saved numpy files
+D_numpy = np.load("D.npy")[:, 0, :]            # SOAP descriptors: one center per sample
+E_numpy = np.load("E.npy")[..., np.newaxis]    # Energies, reshaped to (n_samples, 1)
+F_numpy = np.load("F.npy")                      # Forces
+dD_dr_numpy = np.load("dD_dr.npy")[:, 0, :, :, :]  # Descriptor derivatives for one SOAP center
+r_numpy = np.load("r.npy")                      # Distances
+
+n_samples, n_features = D_numpy.shape
+
+# Select equally spaced indices for training set
+n_train = 30
+idx = np.linspace(0, n_samples - 1, n_train).astype(int)
+
+D_train_full = D_numpy[idx]
+E_train_full = E_numpy[idx]
+F_train_full = F_numpy[idx]
+dD_dr_train_full = dD_dr_numpy[idx]
+r_train_full = r_numpy[idx]
+
+# Standardize descriptors (mean=0, std=1) based on training data
+scaler = StandardScaler().fit(D_train_full)
+D_train_full = scaler.transform(D_train_full)
+D_whole = scaler.transform(D_numpy)
+
+# Scale descriptor derivatives by the same standard deviation factors
+scale_factors = scaler.scale_[None, None, None, :]
+dD_dr_train_full = dD_dr_train_full / scale_factors
+dD_dr_whole = dD_dr_numpy / scale_factors
+
+# Compute variance of energies and forces in the training set for loss weighting
+var_energy_train = np.var(E_train_full)
+var_force_train = np.var(F_train_full)
+
+# Split training data into training and validation subsets (20% validation)
+D_train, D_valid, E_train, E_valid, F_train, F_valid, dD_dr_train, dD_dr_valid = train_test_split(
+    D_train_full,
+    E_train_full,
+    F_train_full,
+    dD_dr_train_full,
+    test_size=0.2,
+    random_state=7
+)
+
+# Convert all data arrays to PyTorch tensors for model input
+D_whole = torch.tensor(D_whole, dtype=torch.float32)
+D_train = torch.tensor(D_train, dtype=torch.float32)
+D_valid = torch.tensor(D_valid, dtype=torch.float32)
+E_train = torch.tensor(E_train, dtype=torch.float32)
+E_valid = torch.tensor(E_valid, dtype=torch.float32)
+F_train = torch.tensor(F_train, dtype=torch.float32)
+F_valid = torch.tensor(F_valid, dtype=torch.float32)
+dD_dr_train = torch.tensor(dD_dr_train, dtype=torch.float32)
+dD_dr_valid = torch.tensor(dD_dr_valid, dtype=torch.float32)
+~~~
+{: .python}
+
+### Model Building
+
+The model is a simple feed-forward neural network designed to predict atomic system energies from SOAP descriptors. It consists of one hidden layer with sigmoid activation and a linear output layer that produces scalar energy predictions. This straightforward architecture allows efficient training while enabling analytical computation of energy derivatives necessary for force predictions
+~~~
+import torch
+import torch.nn as nn
+
+class FFNet(nn.Module):
+    """
+    Simple feed-forward neural network with:
+    - One hidden layer
+    - Normally initialized weights
+    - Sigmoid activation
+    - Linear output layer
+    """
+    def __init__(self, n_features, n_hidden, n_out):
+        super(FFNet, self).__init__()
+        self.linear1 = nn.Linear(n_features, n_hidden)
+        nn.init.normal_(self.linear1.weight, mean=0, std=1.0)
+        self.activation = nn.Sigmoid()
+        self.linear2 = nn.Linear(n_hidden, n_out)
+        nn.init.normal_(self.linear2.weight, mean=0, std=1.0)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.linear2(x)
+        return x
+
+def energy_force_loss(E_pred, E_true, F_pred, F_true):
+    """
+    Combined loss function including energy and force mean squared errors,
+    normalized by their respective training variances to balance their contributions.
+    """
+    energy_loss = torch.mean((E_pred - E_true) ** 2) / var_energy_train
+    force_loss = torch.mean((F_pred - F_true) ** 2) / var_force_train
+    return energy_loss + force_loss
+
+# Initialize the model with desired architecture
+model = FFNet(n_features, n_hidden=5, n_out=1)
+
+# Use Adam optimizer for parameter updates
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+~~~
+{: .python}
+
+Next, we define the training loop, which incorporates mini-batch training and early stopping to avoid overfitting.
+
+~~~
+# Training parameters
+n_max_epochs = 5000
+batch_size = 2
+patience = 20          # Early stopping patience
+i_worse = 0
+old_valid_loss = float("Inf")
+best_valid_loss = float("Inf")
+
+# Enable gradient calculation for validation descriptors (needed for force predictions)
+D_valid.requires_grad = True
+
+for epoch in range(n_max_epochs):
+    # Shuffle training data indices at the start of each epoch
+    permutation = torch.randperm(D_train.size(0))
+
+    for i in range(0, D_train.size(0), batch_size):
+        indices = permutation[i:i + batch_size]
+        
+        # Select batch data and enable gradients for descriptors
+        D_train_batch = D_train[indices]
+        D_train_batch.requires_grad = True
+        E_train_batch = E_train[indices]
+        F_train_batch = F_train[indices]
+        dD_dr_train_batch = dD_dr_train[indices]
+
+        # Forward pass: predict energies
+        E_train_pred_batch = model(D_train_batch)
+
+        # Compute gradients of energy predictions with respect to input descriptors
+        df_dD_train_batch = torch.autograd.grad(
+            outputs=E_train_pred_batch,
+            inputs=D_train_batch,
+            grad_outputs=torch.ones_like(E_train_pred_batch),
+            create_graph=True
+        )[0]
+
+        # Compute predicted forces by chain rule using descriptor derivatives
+        F_train_pred_batch = -torch.einsum('ijkl,il->ijk', dD_dr_train_batch, df_dD_train_batch)
+
+        # Backpropagation and optimization step
+        optimizer.zero_grad()
+        loss = energy_force_loss(E_train_pred_batch, E_train_batch, F_train_pred_batch, F_train_batch)
+        loss.backward()
+        optimizer.step()
+
+    # Validation step to monitor loss and implement early stopping
+    E_valid_pred = model(D_valid)
+    df_dD_valid = torch.autograd.grad(
+        outputs=E_valid_pred,
+        inputs=D_valid,
+        grad_outputs=torch.ones_like(E_valid_pred),
+    )[0]
+
+    F_valid_pred = -torch.einsum('ijkl,il->ijk', dD_dr_valid, df_dD_valid)
+    valid_loss = energy_force_loss(E_valid_pred, E_valid, F_valid_pred, F_valid)
+
+    if valid_loss < best_valid_loss:
+        torch.save(model.state_dict(), "best_model.pt")
+        best_valid_loss = valid_loss
+
+    if valid_loss >= old_valid_loss:
+        i_worse += 1
+    else:
+        i_worse = 0
+
+    if i_worse > patience:
+        print(f"Early stopping at epoch {epoch}")
+        break
+
+    old_valid_loss = valid_loss
+
+    if epoch % 500 == 0:
+        print(f"Finished epoch: {epoch} with loss: {loss.item()}")
+
+# Load best model and switch to evaluation mode
+model.load_state_dict(torch.load("best_model.pt"))
+model.eval()
+
+# Predict energies and forces on the entire dataset
+E_whole = torch.tensor(E_numpy, dtype=torch.float32)
+F_whole = torch.tensor(F_numpy, dtype=torch.float32)
+dD_dr_whole = torch.tensor(dD_dr_whole, dtype=torch.float32)
+
+D_whole.requires_grad = True
+E_whole_pred = model(D_whole)
+df_dD_whole = torch.autograd.grad(
+    outputs=E_whole_pred,
+    inputs=D_whole,
+    grad_outputs=torch.ones_like(E_whole_pred),
+)[0]
+F_whole_pred = -torch.einsum('ijkl,il->ijk', dD_dr_whole, df_dD_whole)
+
+# Detach predictions from the graph and convert to numpy arrays
+E_whole_pred = E_whole_pred.detach().numpy()
+E_whole = E_whole.detach().numpy()
+
+# Save results for later analysis
+np.save("r_train_full.npy", r_train_full)
+np.save("E_train_full.npy", E_train_full)
+np.save("F_train_full.npy", F_train_full)
+np.save("E_whole_pred.npy", E_whole_pred)
+np.save("F_whole_pred.npy", F_whole_pred)
+~~~
+{: .python}
+
+~~~
+Finished epoch: 0 with loss: 21.220672607421875
+Finished epoch: 500 with loss: 7.523424574173987e-05
+Finished epoch: 1000 with loss: 1.699954373179935e-05
+Early stopping at epoch 1010
+~~~
+{: .output}
+
+To quickly evaluate the model’s performance, we plot its predicted energies and forces across the entire dataset and compare them against the reference values. This visual comparison reveals how well the model captures the underlying physical behavior within the input domain. The full analysis script, including error metrics and plotting routines, is available in the GitHub repository under examples/forces_and_energies/analysis.py.
+
+~~~
+import numpy as np
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_absolute_error
+
+# Load data produced by the trained model
+r_whole = np.load("r.npy")
+r_train_full = np.load("r_train_full.npy")
+E_whole = np.load("E.npy")
+E_train_full = np.load("E_train_full.npy")
+E_whole_pred = np.load("E_whole_pred.npy")
+F_whole = np.load("F.npy")
+F_train_full = np.load("F_train_full.npy")
+F_whole_pred = np.load("F_whole_pred.npy")
+
+# Sorting indices for consistent plotting
+order = np.argsort(r_whole)
+
+# Select force components for plotting
+F_x_whole_pred = F_whole_pred[order, 0, 0]
+F_x_whole = F_whole[:, 0, 0][order]
+F_x_train_full = F_train_full[:, 0, 0]
+
+# Create subplots sharing the x-axis: Energy and Forces vs Distance
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 10))
+
+# Plot energies: true vs predicted
+ax1.plot(r_whole[order], E_whole[order], label="True", linewidth=3)
+ax1.plot(r_whole[order], E_whole_pred[order], label="Predicted", linewidth=3)
+ax1.set_ylabel('Energy (eV)', fontsize=15)
+mae_energy = mean_absolute_error(E_whole_pred, E_whole)
+ax1.text(0.95, 0.5, f"MAE: {mae_energy:.2f} eV", fontsize=16,
+         horizontalalignment='right', verticalalignment='center', transform=ax1.transAxes)
+
+# Plot forces: true vs predicted
+ax2.plot(r_whole[order], F_x_whole, label="True", linewidth=3)
+ax2.plot(r_whole[order], F_x_whole_pred, label="Predicted", linewidth=3)
+ax2.set_xlabel('Distance (Å)', fontsize=15)
+ax2.set_ylabel('Force (eV/Å)', fontsize=15)
+mae_force = mean_absolute_error(F_x_whole_pred, F_x_whole)
+ax2.text(0.95, 0.5, f"MAE: {mae_force:.2f} eV/Å", fontsize=16,
+         horizontalalignment='right', verticalalignment='center', transform=ax2.transAxes)
+
+# Highlight training points on both plots
+ax1.scatter(r_train_full, E_train_full, marker="o", color="k", s=20,
+            label="Training points", zorder=3)
+ax2.scatter(r_train_full, F_x_train_full, marker="o", color="k", s=20,
+            label="Training points", zorder=3)
+
+# Add legend and adjust layout
+ax1.legend(fontsize=12)
+ax2.legend(fontsize=12)
+plt.subplots_adjust(left=0.08, right=0.97, top=0.97, bottom=0.08, hspace=0)
+# Save the plot to file with high resolution
+plt.savefig("energy_force_comparison.png", dpi=300)
+# Show the plot
+plt.show()
+~~~
+{: .python}
