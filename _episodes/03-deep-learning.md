@@ -1298,7 +1298,7 @@ plt.show()
 > >
 > > plt.suptitle("Sine Matrix + NN: Energy and Force Prediction")
 > > plt.tight_layout()
-> > plt.savefig("fig/energy_force_comparison_sine.png", dpi=150)
+> > plt.savefig("energy_force_comparison_sine.png", dpi=150)
 > > plt.show()
 > >
 > > print("\nTraining complete. Results saved.")
