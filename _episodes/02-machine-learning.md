@@ -863,7 +863,7 @@ SVM Energy Prediction MAE: 0.0970 eV
 > ## Solution
 >
 > > # Solution
-> >~~~
+> > ~~~
 > > # 1. Import Libraries and Generate Data
 > > import numpy as np
 > > import ase
