@@ -996,7 +996,7 @@ plt.show()
 
 ![](energy_force_comparison.png)
 
-> ## Exercise: Predicting Energies and Forces with Sine Matrix and Neural Networks
+> ## Exercise: Predicting Energies and Forces with Sine Matrix 
 >
 > The **Sine Matrix (SM)** is a simple, translationally and rotationally invariant descriptor for crystalline and molecular systems. It captures pairwise atomic interactions through a screened Coulomb-like form, making it suitable for learning energy and force landscapes.
 >
@@ -1012,7 +1012,6 @@ plt.show()
 > 5. Evaluate the model’s performance on both energy and force predictions.
 >
 > This exercise demonstrates how **simple descriptors** like the Sine Matrix can be used in **physics-informed machine learning** pipelines.
-
 > The **Sine Matrix** is defined as:
 >
 > $$
