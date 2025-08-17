@@ -860,7 +860,6 @@ SVM Energy Prediction MAE: 0.0970 eV
 > 5. Understand how descriptors and regression strategies enable force learning.
 >
 > This exercise focuses on **force prediction**, a core component of **machine-learned force fields**, and demonstrates the use of **multi-output regression** for vector-valued targets.
-
 > ## Solution
 >
 > > # Solution
