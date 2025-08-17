@@ -138,10 +138,10 @@ conda env create --file MatML.yaml
 
 ---
 
-## Ready-to-use `MatGNN.yaml`
+## Ready-to-use `MatML.yaml`
 
 ```yaml
-name: MatGNN
+name: MatML
 channels:
   - conda-forge
   - defaults
@@ -178,7 +178,7 @@ You can create this environment directly with:
 
 ```bash
 conda env create --file MatML.yaml
-conda activate MatGNN
+conda activate MatML
 ```
 
 
