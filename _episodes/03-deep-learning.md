@@ -994,123 +994,321 @@ plt.show()
 ~~~
 {: .python}
 
+![](energy_force_comparison.png)
 
-> ## Exercise: Training a Neural Network with PyTorch
-> In this exercise, we will enhance the neural network training process with PyTorch by implementing the following steps:
-> 
-> 1. Apply LeakyReLU and tanh activation functions and compare the results with the previous implementation.
-> 2. Introduce a dropout rate of 0.2 between the layers to improve model generalization.
-> 3. Experiment with different optimizers listed at the end of the slide (MLP).
-> 4. Implement torch DataLoader techniques to handle batch processing for large datasets.
-> 
-> > ## Solution
-> > 
-> > ~~~
-> > import torch
-> > import torch.nn as nn
-> > import torch.optim as optim
+> ## Exercise: Predicting Energies and Forces with Sine Matrix and Neural Networks
+>
+> The **Sine Matrix (SM)** is a simple, translationally and rotationally invariant descriptor for crystalline and molecular systems. It captures pairwise atomic interactions through a screened Coulomb-like form, making it suitable for learning energy and force landscapes.
+>
+> In this exercise, you will:
+>
+> 1. Generate a dataset of H₂ dimer configurations using the **Lennard-Jones potential**.
+> 2. Compute **Sine Matrix descriptors** and their analytical derivatives using `DScribe`.
+> 3. Train a **feed-forward neural network (FFNN)** to predict total energy from the Sine Matrix.
+> 4. Compute **atomic forces** via the chain rule:  
+>    $$
+>    \hat{\mathbf{F}}_i = - \nabla_{\mathbf{r}_i} f(\mathbf{D}) = - \nabla_{\mathbf{D}} f \cdot \nabla_{\mathbf{r}_i} \mathbf{D}
+>    $$
+> 5. Evaluate the model’s performance on both energy and force predictions.
+>
+> This exercise demonstrates how **simple descriptors** like the Sine Matrix can be used in **physics-informed machine learning** pipelines.
+
+> The **Sine Matrix** is defined as:
+>
+> $$
+> M_{ij}^\mathrm{sine} =
+> \begin{cases}
+> 0.5\, Z_i^{2.4} & i = j \\
+> \displaystyle \frac{Z_i Z_j}{\left| \mathbf{B} \cdot \sum_{k=x,y,z} \hat{\mathbf{e}}_k \sin^2\left( \pi \hat{\mathbf{e}}_k \mathbf{B}^{-1} \cdot (\mathbf{R}_i - \mathbf{R}_j) \right) \right|} & i \neq j
+> \end{cases}
+> $$
+>
+> For **non-periodic systems**, the lattice matrix $\mathbf{B}$ is replaced with a large bounding box, and the interaction decays rapidly with distance. DScribe provides **analytical derivatives** of the Sine Matrix with respect to atomic positions, enabling accurate force prediction via backpropagation.
+> ## Solution
+> ~~~
+> > # Solution
+> >
+> > # 1. Dataset Generation with Sine Matrix
 > > import numpy as np
-> > import copy
-> > from tqdm import tqdm
+> > import ase
+> > from ase.calculators.lj import LennardJones
 > > import matplotlib.pyplot as plt
-> > from torch.utils.data import DataLoader, TensorDataset
-> > 
-> > # Define the neural network architecture
-> > class NeuralNetwork(nn.Module):
-> >     def __init__(self):
-> >         super(NeuralNetwork, self).__init__()
-> >         self.layer1 = nn.Linear(8, 24)
-> >         self.leakyrelu1 = nn.LeakyReLU()
-> >         self.dropout1 = nn.Dropout(0.2)
-> >         self.layer2 = nn.Linear(24, 12)
-> >         self.leakyrelu2 = nn.LeakyReLU()
-> >         self.dropout2 = nn.Dropout(0.2)
-> >         self.layer3 = nn.Linear(12, 6)
-> >         self.leakyrelu3 = nn.LeakyReLU()
-> >         self.dropout3 = nn.Dropout(0.2)
-> >         self.layer4 = nn.Linear(6, 1)
-> > 
-> >     def forward(self, x):
-> >         x = self.dropout1(self.leakyrelu1(self.layer1(x)))
-> >         x = self.dropout2(self.leakyrelu2(self.layer2(x)))
-> >         x = self.dropout3(self.leakyrelu3(self.layer3(x)))
-> >         x = self.layer4(x)
-> >         return x
-> > 
-> > # Define loss function and optimizers
-> > loss_fn = nn.MSELoss()  # Mean Squared Error loss
-> > optimizers = [optim.Adam, optim.SGD, optim.RMSprop]  # Different optimizers to try
-> > n_epochs = 100  # Number of epochs to run
-> > batch_size = 64  # Size of each batch
-> > 
-> > # Create DataLoader
-> > train_dataset = TensorDataset(X_train, y_train)
-> > test_dataset = TensorDataset(X_test, y_test)
-> > train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-> > test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+> > from dscribe.descriptors import SineMatrix
 > >
-> > device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
-> > for optimizer_class in optimizers:
-> >     # Instantiate the model and move it to the device
-> >     model = NeuralNetwork().to(device)
-> >     optimizer = optimizer_class(model.parameters(), lr=0.0001)
-> >     best_mse = np.inf  # Initialize to infinity
-> >     best_weights = None
-> >     history = []
+> > print("Generating H₂ dimer dataset with Sine Matrix descriptors...\n")
 > >
-> >     # Training loop
-> >     for epoch in range(n_epochs):
-> >         model.train()
-> >         for X_batch, y_batch in tqdm(train_loader, unit="batch", mininterval=0, disable=True, desc=f"Epoch {epoch}"):
-> >             # Move batch data to device
-> >             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-> >             optimizer.zero_grad()
-> >             y_pred = model(X_batch)
-> >             loss = loss_fn(y_pred, y_batch)
-> >             loss.backward()
-> >             optimizer.step()
+> > # Initialize Sine Matrix descriptor
+> > sm = SineMatrix(
+> >     n_atoms_max=2,           # Maximum atoms in system
+> >     permutation="none",      # Keep atom order
+> >     sparse=False             # Return dense matrix
+> > )
 > >
-> >         # Evaluate accuracy at the end of each epoch
-> >         model.eval()
-> >         with torch.no_grad():
-> >             mse = 0
-> >             for X_batch, y_batch in test_loader:
-> >                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-> >                 y_pred = model(X_batch)
-> >                 mse += loss_fn(y_pred, y_batch).item()
-> >             mse /= len(test_loader)
+> > # Generate 200 samples: H₂ dimer at varying distances
+> > n_samples = 200
+> > traj = []
+> > n_atoms = 2
+> > energies = np.zeros(n_samples)
+> > forces = np.zeros((n_samples, n_atoms, 3))
+> > distances = np.linspace(2.5, 5.0, n_samples)
 > >
-> >         history.append(mse)
-> >         if mse < best_mse:
-> >             best_mse = mse
-> >             best_weights = copy.deepcopy(model.state_dict())
+> > for i, d in enumerate(distances):
+> >     atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
+> >     atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+> >     traj.append(atoms)
+> >     energies[i] = atoms.get_total_energy()
+> >     forces[i] = atoms.get_forces()
 > >
-> >     # Restore model and return best accuracy
-> >     model.load_state_dict(best_weights)
-> >     print(f"Optimizer: {optimizer_class.__name__}, Best MSE: {best_mse:.2f}, RMSE: {np.sqrt(best_mse):.2f}")
-> >
-> >     # Plot training history
-> >     plt.plot(history, label=optimizer_class.__name__)
-> >
-> > plt.xlabel("Epochs")
-> > plt.ylabel("MSE")
+> > # Validate energies
+> > plt.figure(figsize=(8, 5))
+> > plt.plot(distances, energies, label="Energy", linewidth=2)
+> > plt.xlabel("Distance (Å)")
+> > plt.ylabel("Energy (eV)")
+> > plt.title("Lennard-Jones Energy vs Distance")
+> > plt.grid(True, alpha=0.3)
 > > plt.legend()
-> > plt.savefig("fig/house_train_loss.png")
+> > plt.tight_layout()
+> > plt.savefig("fig/LJ_energy_vs_distance.png", dpi=150)
 > > plt.show()
+> >
+> > # Compute Sine Matrix and its derivatives
+> > print("Computing Sine Matrix and derivatives...")
+> > derivatives, descriptors = sm.derivatives(
+> >     traj,
+> >     method="analytical"
+> > )
+> >
+> > # Save data
+> > np.save("r.npy", distances)
+> > np.save("E.npy", energies)
+> > np.save("D.npy", descriptors)         # Shape: (200, 4) → flattened 2x2 matrix
+> > np.save("dD_dr.npy", derivatives)     # Shape: (200, 2, 3, 4)
+> > np.save("F.npy", forces)
+> >
+> > print(f"Descriptors shape: {descriptors.shape}")
+> > print(f"Derivatives shape: {derivatives.shape}")
+> >
+> > # 2. Data Preparation for Training
+> > import torch
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> >
+> > torch.manual_seed(7)
+> >
+> > # Load data
+> > D_numpy = np.load("D.npy")                        # (200, 4)
+> > E_numpy = np.load("E.npy")[..., np.newaxis]       # (200, 1)
+> > F_numpy = np.load("F.npy")                        # (200, 2, 3)
+> > dD_dr_numpy = np.load("dD_dr.npy")                # (200, 2, 3, 4)
+> > r_numpy = np.load("r.npy")
+> >
+> > n_samples, n_features = D_numpy.shape
+> >
+> > # Select 30 training points (evenly spaced)
+> > n_train = 30
+> > idx = np.linspace(0, n_samples - 1, n_train, dtype=int)
+> >
+> > D_train_full = D_numpy[idx]
+> > E_train_full = E_numpy[idx]
+> > F_train_full = F_numpy[idx]
+> > dD_dr_train_full = dD_dr_numpy[idx]
+> >
+> > # Standardize descriptors
+> > scaler = StandardScaler().fit(D_train_full)
+> > D_train_full = scaler.transform(D_train_full)
+> > D_whole = scaler.transform(D_numpy)
+> >
+> > # Scale derivatives by same factor
+> > scale_factors = scaler.scale_[None, None, None, :]  # (1, 1, 1, 4)
+> > dD_dr_train_full = dD_dr_train_full / scale_factors
+> > dD_dr_whole = dD_dr_numpy / scale_factors
+> >
+> > # Compute variances for loss weighting
+> > var_energy_train = np.var(E_train_full)
+> > var_force_train = np.var(F_train_full)
+> >
+> > # Split into train/validation
+> > from sklearn.model_selection import train_test_split
+> > (D_train, D_valid,
+> >  E_train, E_valid,
+> >  F_train, F_valid,
+> >  dD_dr_train, dD_dr_valid) = train_test_split(
+> >     D_train_full, E_train_full, F_train_full, dD_dr_train_full,
+> >     test_size=0.2, random_state=7
+> > )
+> >
+> > # Convert to PyTorch tensors
+> > D_train = torch.tensor(D_train, dtype=torch.float32)
+> > D_valid = torch.tensor(D_valid, dtype=torch.float32)
+> > E_train = torch.tensor(E_train, dtype=torch.float32)
+> > E_valid = torch.tensor(E_valid, dtype=torch.float32)
+> > F_train = torch.tensor(F_train, dtype=torch.float32)
+> > F_valid = torch.tensor(F_valid, dtype=torch.float32)
+> > dD_dr_train = torch.tensor(dD_dr_train, dtype=torch.float32)
+> > dD_dr_valid = torch.tensor(dD_dr_valid, dtype=torch.float32)
+> > D_whole = torch.tensor(D_whole, dtype=torch.float32)
+> > dD_dr_whole = torch.tensor(dD_dr_whole, dtype=torch.float32)
+> > E_numpy = torch.tensor(E_numpy, dtype=torch.float32)
+> > F_numpy = torch.tensor(F_numpy, dtype=torch.float32)
+> >
+> > # 3. Model Definition
+> > import torch.nn as nn
+> >
+> > class FFNet(nn.Module):
+> >     def __init__(self, n_features, n_hidden, n_out):
+> >         super(FFNet, self).__init__()
+> >         self.linear1 = nn.Linear(n_features, n_hidden)
+> >         nn.init.normal_(self.linear1.weight, mean=0, std=1.0)
+> >         self.activation = nn.Sigmoid()
+> >         self.linear2 = nn.Linear(n_hidden, n_out)
+> >         nn.init.normal_(self.linear2.weight, mean=0, std=1.0)
+> >
+> >     def forward(self, x):
+> >         x = self.linear1(x)
+> >         x = self.activation(x)
+> >         x = self.linear2(x)
+> >         return x
+> >
+> > def energy_force_loss(E_pred, E_true, F_pred, F_true):
+> >     energy_loss = torch.mean((E_pred - E_true) ** 2) / var_energy_train
+> >     force_loss = torch.mean((F_pred - F_true) ** 2) / var_force_train
+> >     return energy_loss + force_loss
+> >
+> > # Initialize model and optimizer
+> > model = FFNet(n_features=4, n_hidden=5, n_out=1)
+> > optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+> >
+> > # 4. Training Loop with Early Stopping
+> > n_max_epochs = 5000
+> > batch_size = 2
+> > patience = 20
+> > i_worse = 0
+> > old_valid_loss = float("inf")
+> > best_valid_loss = float("inf")
+> >
+> > D_valid.requires_grad = True
+> >
+> > for epoch in range(n_max_epochs):
+> >     permutation = torch.randperm(D_train.size(0))
+> >
+> >     for i in range(0, D_train.size(0), batch_size):
+> >         indices = permutation[i:i + batch_size]
+> >         D_batch = D_train[indices]
+> >         D_batch.requires_grad = True
+> >         E_batch = E_train[indices]
+> >         F_batch = F_train[indices]
+> >         dD_dr_batch = dD_dr_train[indices]
+> >
+> >         # Forward pass
+> >         E_pred = model(D_batch)
+> >
+> >         # Gradient of energy w.r.t. descriptor
+> >         dE_dD = torch.autograd.grad(
+> >             outputs=E_pred,
+> >             inputs=D_batch,
+> >             grad_outputs=torch.ones_like(E_pred),
+> >             create_graph=True
+> >         )[0]
+> >
+> >         # Predict forces: F_i = - dE/dD · dD/dr_i
+> >         F_pred = -torch.einsum('ijkl,il->ijk', dD_dr_batch, dE_dD)
+> >
+> >         # Backprop
+> >         optimizer.zero_grad()
+> >         loss = energy_force_loss(E_pred, E_batch, F_pred, F_batch)
+> >         loss.backward()
+> >         optimizer.step()
+> >
+> >     # Validation
+> >     model.eval()
+> >     with torch.no_grad():
+> >         E_valid_pred = model(D_valid)
+> >         dE_dD_valid = torch.autograd.grad(
+> >             outputs=E_valid_pred,
+> >             inputs=D_valid,
+> >             grad_outputs=torch.ones_like(E_valid_pred),
+> >         )[0]
+> >         F_valid_pred = -torch.einsum('ijkl,il->ijk', dD_dr_valid, dE_dD_valid)
+> >         valid_loss = energy_force_loss(E_valid_pred, E_valid, F_valid_pred, F_valid)
+> >
+> >     if valid_loss < best_valid_loss:
+> >         torch.save(model.state_dict(), "best_model_sm.pt")
+> >         best_valid_loss = valid_loss
+> >
+> >     if valid_loss >= old_valid_loss:
+> >         i_worse += 1
+> >     else:
+> >         i_worse = 0
+> >
+> >     if i_worse > patience:
+> >         print(f"Early stopping at epoch {epoch}")
+> >         break
+> >
+> >     old_valid_loss = valid_loss
+> >
+> >     if epoch % 500 == 0:
+> >         print(f"Epoch {epoch}, Loss: {loss.item():.6f}")
+> >
+> > # 5. Evaluation on Full Dataset
+> > model.load_state_dict(torch.load("best_model_sm.pt"))
+> > model.eval()
+> >
+> > D_whole.requires_grad = True
+> > E_whole_pred = model(D_whole)
+> > dE_dD_whole = torch.autograd.grad(
+> >     outputs=E_whole_pred,
+> >     inputs=D_whole,
+> >     grad_outputs=torch.ones_like(E_whole_pred)
+> > )[0]
+> > F_whole_pred = -torch.einsum('ijkl,il->ijk', dD_dr_whole, dE_dD_whole)
+> >
+> > # Save predictions
+> > np.save("E_whole_pred.npy", E_whole_pred.detach().numpy())
+> > np.save("F_whole_pred.npy", F_whole_pred.detach().numpy())
+> >
+> > # 6. Visualization
+> > import matplotlib.pyplot as plt
+> > from sklearn.metrics import mean_absolute_error
+> >
+> > r_whole = np.load("r.npy")
+> > E_whole = np.load("E.npy")
+> > F_whole = np.load("F.npy")
+> > E_pred = np.load("E_whole_pred.npy").flatten()
+> > F_pred = np.load("F_whole_pred.npy")
+> >
+> > order = np.argsort(r_whole)
+> >
+> > fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 8))
+> >
+> > # Energy
+> > ax1.plot(r_whole[order], E_whole[order], label="True", linewidth=2)
+> > ax1.plot(r_whole[order], E_pred[order], '--', label="Predicted", linewidth=2)
+> > ax1.set_ylabel("Energy (eV)")
+> > mae_e = mean_absolute_error(E_whole, E_pred)
+> > ax1.text(0.95, 0.5, f"MAE: {mae_e:.3f} eV", transform=ax1.transAxes, ha="right")
+> > ax1.legend()
+> >
+> > # Force
+> > ax2.plot(r_whole[order], F_whole[:, 0, 0][order], label="True", linewidth=2)
+> > ax2.plot(r_whole[order], F_pred[:, 0, 0][order], '--', label="Predicted", linewidth=2)
+> > ax2.set_xlabel("Distance (Å)")
+> > ax2.set_ylabel("Force (eV/Å)")
+> > mae_f = mean_absolute_error(F_whole[:, 0, 0], F_pred[:, 0, 0])
+> > ax2.text(0.95, 0.5, f"MAE: {mae_f:.3f} eV/Å", transform=ax2.transAxes, ha="right")
+> > ax2.legend()
+> >
+> > plt.suptitle("Sine Matrix + NN: Energy and Force Prediction")
+> > plt.tight_layout()
+> > plt.savefig("fig/energy_force_comparison_sine.png", dpi=150)
+> > plt.show()
+> >
+> > print("\n✅ Training complete. Results saved.")
 > > ~~~
 > > {: .python}
 > {: .solution}
 {: .challenge}
 
-the R² score provides a measure of how well the regression model explains the variance in the target variable relative to a baseline model (usually the mean of the target variable). The R2 (coefficient of determination) is calculated as follows:
 
-1. **Total Sum of Squares (TSS)**: This represents the total variance in the target variable (y). It is calculated as the sum of squared differences between each observed value and the mean of all observed values.
-   \\[ \text{TSS} = \sum_{i=1}^{n}(y_{i} - \bar{y})^2 \\]
-
-2. **Residual Sum of Squares (RSS)**: This represents the unexplained variance in the target variable after fitting the regression model. It is calculated as the sum of squared differences between each observed value and its corresponding predicted value.
-   \\[ \text{RSS} = \sum_{i=1}^{n}(y_{i} - \hat{y}_{i})^2 \\] 
-3. **R2 Score**: The R2 score is then calculated as the proportion of the variance in the target variable that is explained by the regression model. It is defined as:
-   \\[ R^2 = 1 - \frac{\text{RSS}}{\text{TSS}} \\]  
 ##  ANN Classification with ANN
 
 The Multilayer Perceptron (MLP) was developed to overcome the limitations of simple perceptrons. Unlike the linear mappings in perceptrons, MLPs utilize non-linear mappings between inputs and outputs. An MLP consists of an input layer, an output layer, and one or more hidden layers, each containing multiple neurons. While neurons in a perceptron typically employ threshold-based activation functions like ReLU or sigmoid, neurons in an MLP can use a variety of arbitrary activation functions, enhancing the network's ability to model complex relationships.
