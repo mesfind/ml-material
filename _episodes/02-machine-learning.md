@@ -592,10 +592,10 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 > 5. Estimate the total electrostatic energy of a crystal from the ESM.
 >
 > This exercise focuses on **descriptor generation and physical interpretation**, not on machine learning.
-> ## Solution
->
-> > ~~
-> >  # Solution
+> 
+> > ## Solution
+> >
+> > ~~~
 > > # 1. Import and Setup
 > > import numpy as np
 > > import scipy.constants
@@ -860,9 +860,9 @@ SVM Energy Prediction MAE: 0.0970 eV
 > 5. Understand how descriptors and regression strategies enable force learning.
 >
 > This exercise focuses on **force prediction**, a core component of **machine-learned force fields**, and demonstrates the use of **multi-output regression** for vector-valued targets.
-> ## Solution
->
-> > # Solution
+> 
+> > ## Solution
+> >
 > > ~~~
 > > # 1. Import Libraries and Generate Data
 > > import numpy as np
