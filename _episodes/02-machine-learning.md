@@ -15,6 +15,7 @@ keypoints:
 - "Data representations are crucial for ML in material science"
 - "ML algorithms like linear regression, k-nearest neighbors,support vector Machine, xgboost and random forests are vital algorithms"
 - "Supervised learning is a popular ML approach, with decision trees, random forests, and neural networks being widely used"
+- "Data representations are fundamental in materials science machine learning, enabling effective encoding of material structures and properties for predictive modeling."
 - "Fundamentals of data engineering are crucial for building robust ML pipelines, including data storage, processing, and serving"
 ---
 
