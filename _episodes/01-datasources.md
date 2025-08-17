@@ -25,21 +25,7 @@ The Materials Project dataset is a widely used resource in machine learning (ML)
 
 ### Main Features
 
-- **Large and Diverse Coverage**: Contains computed properties and crystal structures for over 70,000 inorganic materials, covering diverse chemistries and crystal systems. This diversity allows ML models to capture broad structure-property relationships.
-
-- **High-Quality Computed Properties**: All properties are generated from consistent, state-of-the-art quantum mechanical DFT calculations, providing reliable and comparable target properties such as formation energy, band gap, elastic moduli, and phase stability.
-
-- **Uniqueness and Reduced Duplication**: The dataset ensures uniqueness of materials and computed properties by reducing duplication, enabling models to learn from a comprehensive range of structures without bias toward overrepresented classes.
-
-- **Rich Material Descriptors**: Researchers often extract domain-specific features or descriptors capturing chemical, structural, and physical characteristics to improve ML model accuracy.
-
-- **Robust Data Access**: The dataset is accessible via a web platform and API with Python tools (e.g., pymatgen), facilitating easy querying, data extraction, and integration into ML workflows.
-
-- **Use in Advanced ML Models**: Supports modern techniques including graph neural networks and deep learning on crystal graph representations, which have achieved high accuracy in predicting multiple materials properties.
-
-- **Continuous Growth and Updates**: The infrastructure performs thousands of calculations per week, continuously expanding the database, which benefits models trained on increasing data scales and diversity.
-
-- **Reusable for Multiple ML Tasks**: Beyond basic property prediction, the dataset aids in developing force fields, understanding structure-property relations, and generating new materials candidates via active learning.
+This dataset comprises computed properties and crystal structures for over 70,000 inorganic materials across diverse chemistries and crystal systems, enabling broad structure-property modeling. All properties derive from consistent, high-quality density functional theory (DFT) calculations, ensuring reliable and comparable targets such as formation energy, band gap, and elastic moduli. The data is curated to minimize duplication, preserving material uniqueness and reducing bias. Researchers can extract rich chemical and structural descriptors to enhance model performance. Accessible via a web platform and API with Python tools (e.g., pymatgen), it supports seamless integration into machine learning workflows. The dataset facilitates advanced techniques, including graph neural networks on crystal graphs, and is continuously updated with thousands of new calculations weekly. Its versatility extends beyond property prediction to force field development, structure-property analysis, and materials discovery via active learning.
 
 ### Data Access with MP API
 
@@ -116,19 +102,6 @@ OMat24 is composed of several subdatasets based on generation method:
    - `aimd-from-PBE-3000-npt`
    - `aimd-from-PBE-3000-nvt`
 
-### File Contents and Downloads
-
-#### OMat24 Train Split
-| Sub-dataset | No. structures | File size | Download |
-|------------|----------------|-----------|----------|
-| [Full table maintained as in original...] | 
-
-#### OMat24 Val Split
-*Note*: Corrected validation sets were uploaded on 20/12/24 due to duplicated structures.
-
-| Sub-dataset | Size      | File Size | Download |
-|-------------|-----------|-----------|----------|
-| [Full table maintained as in original...] |
 
 #### sAlex Dataset
 A Matbench-Discovery compliant version of Alexandria dataset:
