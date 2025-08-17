@@ -54,6 +54,43 @@ with MPRester(api_key) as mpr:
 ~~~
 {: .python}
 
+
+## 3) matminer dataset
+
+The matminer.datasets module is part of the matminer Python library, which is designed for data mining and analysis in the field of materials science. This module provides a growing collection of ready-made materials science datasets. These datasets have been carefully collected and formatted as pandas DataFrames, which are two-dimensional data structures commonly used in data analysis and manipulation.
+
+The key features and benefits of this module include:
+
+- Unified Interface: Users can access many different materials science datasets using a simple and consistent interface.
+- Ready-made Datasets: The datasets cover various domains of materials data, such as properties of compounds, crystal structures, and experimental data.
+- Pandas DataFrame Format: Each dataset is available as a pandas DataFrame, which means data is organized in tabular form with rows as data points and columns as measured or calculated properties.
+- Ease of Use: Loading a dataset is straightforward with a single function call, for example
+
+
+~~~
+from matminer.datasets import load_dataset
+df = load_dataset("jarvis_dft_3d")
+df.head()
+~~~
+{: .python}
+
+~~~
+   epsilon_x opt  epsilon_y opt  epsilon_z opt                                          structure  ...  epsilon_z tbmbj        mpid gap opt composition
+0            NaN            NaN            NaN  [[1.40094192 1.40094192 1.40094192] Co, [0. 0....  ...              NaN  mp-1006883  0.0016    (Co, Ni)
+1            NaN            NaN            NaN  [[1.75548056 1.75548056 0.        ] Co, [1.755...  ...              NaN  mp-1008349  0.0018    (Co, Ni)
+2            NaN            NaN            NaN  [[0. 0. 0.] Nb, [1.54076297 1.54076297 1.54076...  ...              NaN  mp-1009264  0.0019    (Nb, Co)
+3        42.9249        42.9249        42.9249  [[0. 0. 0.] Mg, [1.51711798 1.51711798 1.51711...  ...              NaN  mp-1010953  0.0098    (Mg, Ni)
+4        44.0749        44.0749        61.1827  [[0. 0. 0.] Al, [-2.35662665e-06  2.33379406e+...  ...              NaN     mp-1057  0.0143    (Al, Ni)
+
+[5 rows x 16 columns]
+~~~
+{: .output}
+
+This loads the "jarvis_dft_3d" dataset into a pandas DataFrame named `df`. The datasets module helps researchers and data scientists explore, analyze, and benchmark materials data efficiently without needing to download and preprocess raw data files or interact with database APIs directly. This encourages faster experimentation and model development in materials informatics.
+
+
+
+
 ## 2) OMol25 (Open Molecules 2025)
 
 The Open Molecules 2025 (OMol25) dataset contains over 100 million single point calculations of non-equilibrium structures and structural relaxations across a wide swath of organic and inorganic molecular space, including transition metal complexes and electrolytes. The dataset contains structures labeled with total energy (eV) and forces (eV/Å) computed at the wB97M-V/def2-TZVPD level using ORCA6. 
@@ -74,7 +111,7 @@ All information about the dataset is available at the [OMol25 HuggingFace site](
 To reproduce the calculations:
 
 ~~~
-from fairchem.data.om.omdata.orca import calc  # For writing compatible ORCA inputs
+from fairchem.data.om.omdata.orca import calc 
 ~~~
 {: .python}
 
@@ -140,4 +177,4 @@ The Open Molecular Crystals 2025 (OMC25) dataset was announced along with UMA, a
 - Focuses on organic molecular crystals
 - Generated from random packing configurations
 - More details and download information coming soon
-```
+
