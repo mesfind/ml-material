@@ -871,19 +871,17 @@ SVM Energy Prediction MAE: 0.0970 eV
 > > import ase
 > > from ase.calculators.lj import LennardJones
 > > from dscribe.descriptors import SOAP
-> >
+> > 
 > > print("Generating H₂ dimer dataset with Lennard-Jones forces...\n")
-> >
 > > # Initialize SOAP descriptor
 > > soap = SOAP(
 > >     species=["H"],
 > >     periodic=False,
-> >     r_cut=5.0,
+> >    r_cut=5.0,
 > >     sigma=0.5,
 > >     n_max=3,
 > >     l_max=0,
 > > )
-> >
 > > # Generate 200 samples: H₂ dimer at varying distances
 > > n_samples = 200
 > > traj = []
@@ -891,67 +889,67 @@ SVM Energy Prediction MAE: 0.0970 eV
 > > energies = np.zeros(n_samples)
 > > forces = np.zeros((n_samples, n_atoms, 3))  # Shape: (200, 2, 3)
 > > distances = np.linspace(2.5, 5.0, n_samples)
-> >
+> > 
 > > for i, d in enumerate(distances):
 > >     atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
 > >     calc = LennardJones(epsilon=1.0, sigma=2.9)
-> >     atoms.cal = calc
+> >     atoms.calc = calc
 > >     traj.append(atoms)
 > >     energies[i] = atoms.get_total_energy()
 > >     forces[i] = atoms.get_forces()
-> >
+> > 
 > > # Reshape forces for ML: (n_samples * n_atoms, 3)
 > > forces_flat = forces.reshape(-1, 3)
 > > print(f"Generated {n_samples} configurations with {n_atoms} atoms each.")
 > > print(f"Force data shape (flattened): {forces_flat.shape}")
-> >
 > > # 2. Compute SOAP Descriptors
 > > print("\nComputing SOAP descriptors...")
-> > centers = [[[0]][[0]][[0]]] * n_samples  # One center per system
+> > centers = [[[0, 0, 0]]] * n_samples  # One center per system
 > > descriptors = soap.create(traj, centers=centers)  # Shape: (200, 1, 6)
 > > D = descriptors.squeeze(axis=1)  # Remove singleton dim → (200, 6)
-> >
+> > 
 > > # Repeat each descriptor for both atoms
 > > D_repeated = np.repeat(D, n_atoms, axis=0)  # (200, 6) → (400, 6)
 > > print(f"SOAP descriptor shape (repeated): {D_repeated.shape}")
-> >
+> > 
 > > # 3. Train-Test Split and Scaling
 > > from sklearn.model_selection import train_test_split
 > > from sklearn.preprocessing import StandardScaler
-> >
+> > 
 > > X_train, X_test, y_train, y_test = train_test_split(
 > >     D_repeated, forces_flat, test_size=0.2, random_state=7
 > > )
-> >
+> > 
 > > scaler = StandardScaler()
 > > X_train_scaled = scaler.fit_transform(X_train)
 > > X_test_scaled = scaler.transform(X_test)
-> >
+> > 
 > > # 4. Random Forest Model for Force Prediction
 > > print("\nTraining Random Forest model on forces...")
 > > from sklearn.ensemble import RandomForestRegressor
 > > from sklearn.multioutput import MultiOutputRegressor
 > > from sklearn.metrics import mean_absolute_error
-> >
+> > 
 > > rf_base = RandomForestRegressor(n_estimators=100, random_state=7)
 > > rf_model = MultiOutputRegressor(rf_base)
 > > rf_model.fit(X_train_scaled, y_train)
-> >
+> > 
 > > y_pred_rf = rf_model.predict(X_test_scaled)
 > > mae_rf = mean_absolute_error(y_test, y_pred_rf)
 > > print(f"Random Forest MAE (force): {mae_rf:.4f} eV/Å")
-> >
+> > 
 > > # 5. SVR Model for Force Prediction
 > > print("\nTraining SVR model on forces...")
 > > from sklearn.svm import SVR
-> >
+> > 
 > > svr_base = SVR(kernel='rbf', C=10.0, gamma='scale')
 > > svr_model = MultiOutputRegressor(svr_base)
 > > svr_model.fit(X_train_scaled, y_train)
-> >
+> > 
 > > y_pred_svr = svr_model.predict(X_test_scaled)
 > > mae_svr = mean_absolute_error(y_test, y_pred_svr)
 > > print(f"SVR MAE (force): {mae_svr:.4f} eV/Å")
+> > 
 > > ~~~
 > > {: .python}
 > {: .solution}
