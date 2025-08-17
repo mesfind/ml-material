@@ -88,10 +88,28 @@ df.head()
 
 This loads the "jarvis_dft_3d" dataset into a pandas DataFrame named `df`. The datasets module helps researchers and data scientists explore, analyze, and benchmark materials data efficiently without needing to download and preprocess raw data files or interact with database APIs directly. This encourages faster experimentation and model development in materials informatics.
 
+###   Elastic tensor 
+~~~
+from matminer.datasets.convenience_loaders import load_elastic_tensor
+df = load_elastic_tensor()  # loads dataset in a pandas DataFrame object
+df.head()
+~~~
+{: .python}
+
+~~~
+  material_id    formula  ...                                     elastic_tensor                            elastic_tensor_original
+0    mp-10003    Nb4CoSi  ...  [[311.33514638650246, 144.45092552856926, 126....  [[311.33514638650246, 144.45092552856926, 126....
+1    mp-10010  Al(CoSi)2  ...  [[306.93357350984974, 88.02634955100905, 105.6...  [[306.93357350984974, 88.02634955100905, 105.6...
+2    mp-10015       SiOs  ...  [[569.5291276937579, 157.8517489654999, 157.85...  [[569.5291276937579, 157.8517489654999, 157.85...
+3    mp-10021         Ga  ...  [[69.28798774976904, 34.7875015216915, 37.3877...  [[70.13259066665267, 40.60474945058445, 37.387...
+4    mp-10025      SiRu2  ...  [[349.3767766177825, 186.67131003104407, 176.4...  [[407.4791016459293, 176.4759188081947, 213.83...
+
+[5 rows x 17 columns]
+~~~
+{: .output}
 
 
-
-## 2) OMol25 (Open Molecules 2025)
+## 4) OMol25 (Open Molecules 2025)
 
 The Open Molecules 2025 (OMol25) dataset contains over 100 million single point calculations of non-equilibrium structures and structural relaxations across a wide swath of organic and inorganic molecular space, including transition metal complexes and electrolytes. The dataset contains structures labeled with total energy (eV) and forces (eV/Å) computed at the wB97M-V/def2-TZVPD level using ORCA6. 
 
