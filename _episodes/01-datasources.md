@@ -200,3 +200,68 @@ The Open Molecular Crystals 2025 (OMC25) dataset was announced along with UMA, a
 
 ## Data Preprocessing in Machine Learning
 
+~~~
+import pandas as pd
+df= pd.read_csv('data/expt_gap.csv')
+print(len(df)) 
+df.head()
+~~~
+{: .python}
+
+~~~
+             formula  gap expt
+0           Ag(AuS)2      0.00
+1         Ag(W3Br7)2      0.00
+2   Ag0.5Ge1Pb1.75S4      1.83
+3  Ag0.5Ge1Pb1.75Se4      1.51
+4             Ag2BBr      0.00
+~~~
+{: .output}
+
+### Feature Engineering: Elemental Compostion 
+
+* In order to prepare other elemental feature compostion is one of the important property
+
+~~~
+import pandas as pd
+from pymatgen.core import Composition
+df= pd.read_csv('data/expt_gap.csv')
+df['composition'] = df.formula.map(lambda x: Composition(x))
+df.head()
+~~~
+{: .python}
+
+~~~
+             formula  gap expt       composition
+0           Ag(AuS)2      0.00       (Ag, Au, S)
+1         Ag(W3Br7)2      0.00       (Ag, W, Br)
+2   Ag0.5Ge1Pb1.75S4      1.83   (Ag, Ge, Pb, S)
+3  Ag0.5Ge1Pb1.75Se4      1.51  (Ag, Ge, Pb, Se)
+4             Ag2BBr      0.00       (Ag, B, Br)
+~~~
+{: .output}
+
+* Let us first determine the atomic orbital of the the compound from their composition
+
+~~~
+import pandas as pd
+from pymatgen.core import Composition
+from matminer.featurizers.composition import ElementProperty, AtomicOrbitals
+df= pd.read_csv('data/expt_gap.csv')
+df['composition'] = df.formula.map(lambda x: Composition(x))
+df = df.dropna(axis=0)
+df = AtomicOrbitals().featurize_dataframe(df, 'composition',  ignore_errors=True, return_errors=False)
+(df[df.gap_AO > 0]).head()
+~~~
+{: .python}
+
+~~~
+AtomicOrbitals: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████| 7868/7868 [01:55<00:00, 67.97it/s]
+         formula  gap expt       composition HOMO_character HOMO_element  HOMO_energy LUMO_character LUMO_element  LUMO_energy    gap_AO
+8        Ag2HgI4      2.47       (Ag, Hg, I)              p            I    -0.267904              s           Hg    -0.205137  0.062767
+9   Ag2Mo(I2O7)2      3.06    (Ag, Mo, I, O)              d           Ag    -0.298706              p            I    -0.267904  0.030802
+24       AgAsSe2      1.40      (Ag, As, Se)              p           Se    -0.245806              p           As    -0.197497  0.048309
+28      AgBiPbS3      1.20   (Ag, Bi, Pb, S)              p            S    -0.261676              p           Bi    -0.180198  0.081478
+29     AgBiPbSe3      0.13  (Ag, Bi, Pb, Se)              p           Se    -0.245806              p           Bi    -0.180198  0.065608
+~~~
+{: .output}
