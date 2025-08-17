@@ -987,3 +987,14 @@ df = df[df["FormEnergyPerAtom"] > -5]
 df.head()
 ~~~
 {: .python}
+
+~~~ 
+      c     a     d  C-IonicRadius  ...  A-ElectroNegativity  D-IonicRadius  D-ElectroNegativity  FormEnergyPerAtom
+0  Gd3+  Sc3+  Al3+          1.075  ...                 1.36          0.675                 1.61          -0.048480
+1  Ca2+  Sc3+  Ti4+          1.140  ...                 1.36          0.745                 1.54          -0.140997
+2  Cd2+  Cr3+  Ge4+          1.090  ...                 1.66          0.670                 2.01          -0.087724
+3  Mg2+  Al3+  Ge4+          0.860  ...                 1.61          0.670                 2.01          -0.037325
+4  Cd2+  Tm3+  Ti4+          1.090  ...                 1.25          0.745                 1.54           0.004684
+[5 rows x 10 columns]
+~~~
+{: .output}
