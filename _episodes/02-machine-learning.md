@@ -851,6 +851,160 @@ SVM Energy Prediction MAE: 0.0970 eV
 {: .output}
 
 
+> ## Exercise: Predicting Atomic Forces with Random Forest and SVR
+>
+> Machine learning models can be used to predict not only **total energies** but also **atomic forces** — essential for molecular dynamics and geometry optimization. In this exercise, you will:
+>
+> 1. Generate a dataset of H₂ dimer configurations using the **Lennard-Jones potential**.
+> 2. Compute **SOAP descriptors** for each configuration.
+> 3. Train two models — **Random Forest (RF)** and **Support Vector Regression (SVR)** — to predict **atomic forces** from SOAP vectors.
+> 4. Evaluate model performance using **Mean Absolute Error (MAE)**.
+> 5. Visualize predicted vs. true forces.
+>
+> This exercise focuses on **force prediction**, a critical step toward building **interatomic potentials** with machine learning.
+> ## Solution
+>
+> > # Solution
+> > ~~~
+> > # 1. Import Libraries and Generate Data
+> > import numpy as np
+> > import ase
+> > from ase.calculators.lj import LennardJones
+> > import matplotlib.pyplot as plt
+> > from dscribe.descriptors import SOAP
+> >
+> > print("Generating H₂ dimer dataset with Lennard-Jones forces...\n")
+> >
+> > # Initialize SOAP descriptor
+> > soap = SOAP(
+> >     species=["H"],
+> >     periodic=False,
+> >     r_cut=5.0,
+> >     sigma=0.5,
+> >     n_max=3,
+> >     l_max=0,
+> > )
+> >
+> > # Generate 200 samples: H₂ dimer at varying distances
+> > n_samples = 200
+> > traj = []
+> > n_atoms = 2
+> > energies = np.zeros(n_samples)
+> > forces = np.zeros((n_samples, n_atoms, 3))  # Shape: (200, 2, 3)
+> > distances = np.linspace(2.5, 5.0, n_samples)
+> >
+> > for i, d in enumerate(distances):
+> >     atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
+> >     atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+> >     traj.append(atoms)
+> >     energies[i] = atoms.get_total_energy()
+> >     forces[i] = atoms.get_forces()
+> >
+> > # Reshape forces for ML: (n_samples * n_atoms, 3) → one vector per atom
+> > F_flat = forces.reshape(-1, 3)  # Shape: (400, 3)
+> > print(f"Generated {n_samples} configurations with {n_atoms} atoms each.")
+> > print(f"Force data shape (flattened): {F_flat.shape}")
+> >
+> > # 2. Compute SOAP Descriptors
+> > print("\nComputing SOAP descriptors...")
+> > # Use center at midpoint (0,0,0) for both atoms
+> > centers = [[[0]][[0]][[0]]] * n_samples  # One center per system
+> > descriptors = soap.create(traj, centers=centers)  # Shape: (200, 1, 6)
+> > D = descriptors.squeeze(axis=1)  # Remove singleton dim → (200, 6)
+> >
+> > # Repeat each descriptor for both atoms
+> > D_repeated = np.repeat(D, n_atoms, axis=0)  # (200,6) → (400,6)
+> > print(f"SOAP descriptor shape (repeated): {D_repeated.shape}")
+> >
+> > # 3. Train-Test Split
+> > from sklearn.model_selection import train_test_split
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.ensemble import RandomForestRegressor
+> > from sklearn.svm import SVR
+> > from sklearn.metrics import mean_absolute_error
+> >
+> > X_train, X_test, y_train, y_test = train_test_split(
+> >     D_repeated, F_flat, test_size=0.2, random_state=7
+> > )
+> >
+> > # Scale features
+> > scaler = StandardScaler()
+> > X_train_scaled = scaler.fit_transform(X_train)
+> > X_test_scaled = scaler.transform(X_test)
+> >
+> > # 4. Random Forest Model for Force Prediction
+> > print("\nTraining Random Forest model on forces...")
+> > rf_model = RandomForestRegressor(n_estimators=100, random_state=7)
+> > rf_model.fit(X_train_scaled, y_train)
+> >
+> > # Predict
+> > y_pred_rf = rf_model.predict(X_test_scaled)
+> > mae_rf = mean_absolute_error(y_test, y_pred_rf)
+> > print(f"Random Forest MAE (force): {mae_rf:.4f} eV/Å")
+> >
+> > # 5. SVR Model for Force Prediction
+> > print("\nTraining SVR model on forces...")
+> > # Train one SVR per force component
+> > svr_model_x = SVR(kernel='rbf', C=10.0, gamma='scale')
+> > svr_model_y = SVR(kernel='rbf', C=10.0, gamma='scale')
+> > svr_model_z = SVR(kernel='rbf', C=10.0, gamma='scale')
+> >
+> > svr_model_x.fit(X_train_scaled, y_train[:, 0])
+> > svr_model_y.fit(X_train_scaled, y_train[:, 1])
+> > svr_model_z.fit(X_train_scaled, y_train[:, 2])
+> >
+> > # Predict
+> > y_pred_svr = np.column_stack([
+> >     svr_model_x.predict(X_test_scaled),
+> >     svr_model_y.predict(X_test_scaled),
+> >     svr_model_z.predict(X_test_scaled)
+> > ])
+> > mae_svr = mean_absolute_error(y_test, y_pred_svr)
+> > print(f"SVR MAE (force): {mae_svr:.4f} eV/Å")
+> >
+> > # 6. Visualization: Predicted vs True Forces
+> > plt.figure(figsize=(12, 5))
+> >
+> > # Random Forest
+> > plt.subplot(1, 2, 1)
+> > plt.scatter(y_test[:, 0], y_pred_rf[:, 0], alpha=0.6, label="x-component", color="tab:blue")
+> > plt.scatter(y_test[:, 1], y_pred_rf[:, 1], alpha=0.6, label="y-component", color="tab:orange")
+> > plt.scatter(y_test[:, 2], y_pred_rf[:, 2], alpha=0.6, label="z-component", color="tab:green")
+> > plt.plot([-2, 2], [-2, 2], 'k--', label="y=x")
+> > plt.xlabel("True Force (eV/Å)")
+> > plt.ylabel("RF Predicted Force (eV/Å)")
+> > plt.title("Random Forest: Predicted vs True Forces")
+> > plt.legend()
+> > plt.grid(True, alpha=0.3)
+> >
+> > # SVR
+> > plt.subplot(1, 2, 2)
+> > plt.scatter(y_test[:, 0], y_pred_svr[:, 0], alpha=0.6, label="x-component", color="tab:blue")
+> > plt.scatter(y_test[:, 1], y_pred_svr[:, 1], alpha=0.6, label="y-component", color="tab:orange")
+> > plt.scatter(y_test[:, 2], y_pred_svr[:, 2], alpha=0.6, label="z-component", color="tab:green")
+> > plt.plot([-2, 2], [-2, 2], 'k--', label="y=x")
+> > plt.xlabel("True Force (eV/Å)")
+> > plt.ylabel("SVR Predicted Force (eV/Å)")
+> > plt.title("SVR: Predicted vs True Forces")
+> > plt.legend()
+> > plt.grid(True, alpha=0.3)
+> >
+> > plt.tight_layout()
+> > plt.savefig("force_prediction_comparison.png", dpi=150, bbox_inches='tight')
+> > plt.show()
+> >
+> > # 7. Summary
+> > print("\n💡 Key Takeaways:")
+> > print("  • SOAP descriptors can be used to predict atomic forces.")
+> > print("  • RF handles vector output directly; SVR requires one model per component.")
+> > print("  • Both models achieve low MAE on this simple 1D system.")
+> > print("  • Force prediction is essential for building ML potentials.")
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
+
+
 # Deep learning
 ## ANN
 
