@@ -204,7 +204,6 @@ M_{ij}^\mathrm{Coulomb} =
 0.5 Z_i^{2.4} & \text{for } i = j \\
 \frac{Z_i Z_j}{R_{ij}} & \text{for } i \neq j
 \end{cases}
-
 $$
 
 In the matrix above the first row corresponds to carbon (C) in methanol interacting with all the other atoms (columns 2-5) and itself (column 1). Likewise, the first column displays the same numbers, since the matrix is symmetric. Furthermore, the second row (column) corresponds to oxygen and the remaining rows (columns) correspond to hydrogen (H). Can you determine which one is which?
