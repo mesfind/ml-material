@@ -1026,38 +1026,50 @@ plt.show()
 > ## Solution
 > 
 > > ~~~
-> > # Solution
-> > # 1. Dataset Generation with Sine Matrix
+> > # Solution: H₂ Dimer Energy and Force Prediction using Sine Matrix + Neural Network
+> > # Fixed version with proper gradient handling and cell setup
 > > import numpy as np
 > > import ase
 > > from ase.calculators.lj import LennardJones
+> > from ase.atoms import Atoms
 > > import matplotlib.pyplot as plt
 > > from dscribe.descriptors import SineMatrix
-> >
+> > import torch
+> > import torch.nn as nn
+> > from torch.autograd import grad
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> > from sklearn.metrics import mean_absolute_error
+> > import os
 > > print("Generating H₂ dimer dataset with Sine Matrix descriptors...\n")
-> >
+> > # ========================
+> > # 1. Dataset Generation
+> > # ========================
 > > # Initialize Sine Matrix descriptor
 > > sm = SineMatrix(
-> >     n_atoms_max=2,           # Maximum atoms in system
-> >     permutation="none",      # Keep atom order
-> >     sparse=False             # Return dense matrix
+> >     n_atoms_max=2,
+> >     permutation="none",
+> >     sparse=False
 > > )
-> >
+> > 
 > > # Generate 200 samples: H₂ dimer at varying distances
 > > n_samples = 200
 > > traj = []
-> > n_atoms = 2
 > > energies = np.zeros(n_samples)
-> > forces = np.zeros((n_samples, n_atoms, 3))
+> > forces = np.zeros((n_samples, 2, 3))
 > > distances = np.linspace(2.5, 5.0, n_samples)
-> >
+> > # Large box to allow SineMatrix to work (non-periodic but valid cell)
+> > box_size = 10.0  # Å
+> > 
 > > for i, d in enumerate(distances):
-> >     atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
-> >     atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+> >     atoms = Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
+> >     atoms.set_cell([box_size, box_size, box_size])
+> >     atoms.set_pbc(False)  # No periodic boundaries
+> >     atoms.calc = LennardJones(epsilon=1.0, sigma=2.9)  # Modern ASE syntax
 > >     traj.append(atoms)
-> >     energies[i] = atoms.get_total_energy()
+> >     energies[i] = atoms.get_potential_energy()
 > >     forces[i] = atoms.get_forces()
-> >
+> > 
 > > # Validate energies
 > > plt.figure(figsize=(8, 5))
 > > plt.plot(distances, energies, label="Energy", linewidth=2)
@@ -1067,92 +1079,78 @@ plt.show()
 > > plt.grid(True, alpha=0.3)
 > > plt.legend()
 > > plt.tight_layout()
-> > plt.savefig("fig/LJ_energy_vs_distance.png", dpi=150)
+> > plt.savefig("LJ_energy_vs_distance.png", dpi=150)
 > > plt.show()
-> >
-> > # Compute Sine Matrix and its derivatives
+> > # Compute Sine Matrix descriptors and numerical derivatives
 > > print("Computing Sine Matrix and derivatives...")
 > > derivatives, descriptors = sm.derivatives(
 > >     traj,
-> >     method="analytical"
+> >     method="numerical"
 > > )
-> >
-> > # Save data
+> > 
+> > # Save data for training
 > > np.save("r.npy", distances)
 > > np.save("E.npy", energies)
-> > np.save("D.npy", descriptors)         # Shape: (200, 4) → flattened 2x2 matrix
-> > np.save("dD_dr.npy", derivatives)     # Shape: (200, 2, 3, 4)
+> > np.save("D.npy", descriptors)
+> > np.save("dD_dr.npy", derivatives)
 > > np.save("F.npy", forces)
-> >
-> > print(f"Descriptors shape: {descriptors.shape}")
-> > print(f"Derivatives shape: {derivatives.shape}")
-> >
-> > # 2. Data Preparation for Training
-> > import torch
-> > from sklearn.preprocessing import StandardScaler
-> > from sklearn.model_selection import train_test_split
-> >
+> > 
+> > print(f"Descriptors shape: {descriptors.shape}")        # (200, 4)
+> > print(f"Derivatives shape: {derivatives.shape}")        # (200, 2, 3, 4)
+> > # ========================
+> > # 2. Data Preparation
+> > # ========================
 > > torch.manual_seed(7)
-> >
 > > # Load data
-> > D_numpy = np.load("D.npy")                        # (200, 4)
-> > E_numpy = np.load("E.npy")[..., np.newaxis]       # (200, 1)
-> > F_numpy = np.load("F.npy")                        # (200, 2, 3)
-> > dD_dr_numpy = np.load("dD_dr.npy")                # (200, 2, 3, 4)
+> > D_numpy = np.load("D.npy")                              # (200, 4)
+> > E_numpy = np.load("E.npy")[:, np.newaxis]               # (200, 1)
+> > F_numpy = np.load("F.npy")                              # (200, 2, 3)
+> > dD_dr_numpy = np.load("dD_dr.npy")                      # (200, 2, 3, 4)
 > > r_numpy = np.load("r.npy")
-> >
 > > n_samples, n_features = D_numpy.shape
-> >
-> > # Select 30 training points (evenly spaced)
+> > # Select 30 training points evenly spaced
 > > n_train = 30
 > > idx = np.linspace(0, n_samples - 1, n_train, dtype=int)
-> >
 > > D_train_full = D_numpy[idx]
 > > E_train_full = E_numpy[idx]
 > > F_train_full = F_numpy[idx]
 > > dD_dr_train_full = dD_dr_numpy[idx]
-> >
 > > # Standardize descriptors
 > > scaler = StandardScaler().fit(D_train_full)
 > > D_train_full = scaler.transform(D_train_full)
 > > D_whole = scaler.transform(D_numpy)
-> >
-> > # Scale derivatives by same factor
+> > # Scale derivatives by same factor as descriptors
 > > scale_factors = scaler.scale_[None, None, None, :]  # (1, 1, 1, 4)
 > > dD_dr_train_full = dD_dr_train_full / scale_factors
 > > dD_dr_whole = dD_dr_numpy / scale_factors
-> >
 > > # Compute variances for loss weighting
 > > var_energy_train = np.var(E_train_full)
 > > var_force_train = np.var(F_train_full)
-> >
-> > # Split into train/validation
-> > from sklearn.model_selection import train_test_split
-> > (D_train, D_valid,
-> >  E_train, E_valid,
-> >  F_train, F_valid,
-> >  dD_dr_train, dD_dr_valid) = train_test_split(
+> > 
+> > # Split into training and validation sets
+> > (D_train_np, D_valid_np,
+> >  E_train_np, E_valid_np,
+> >  F_train_np, F_valid_np,
+> >  dD_dr_train_np, dD_dr_valid_np) = train_test_split(
 > >     D_train_full, E_train_full, F_train_full, dD_dr_train_full,
 > >     test_size=0.2, random_state=7
 > > )
-> >
-> > # Convert to PyTorch tensors
-> > D_train = torch.tensor(D_train, dtype=torch.float32)
-> > D_valid = torch.tensor(D_valid, dtype=torch.float32)
-> > E_train = torch.tensor(E_train, dtype=torch.float32)
-> > E_valid = torch.tensor(E_valid, dtype=torch.float32)
-> > F_train = torch.tensor(F_train, dtype=torch.float32)
-> > F_valid = torch.tensor(F_valid, dtype=torch.float32)
-> > dD_dr_train = torch.tensor(dD_dr_train, dtype=torch.float32)
-> > dD_dr_valid = torch.tensor(dD_dr_valid, dtype=torch.float32)
-> > D_whole = torch.tensor(D_whole, dtype=torch.float32)
+> > # Convert to PyTorch tensors and ensure gradients where needed
+> > D_train = torch.tensor(D_train_np, dtype=torch.float32)
+> > D_valid = torch.tensor(D_valid_np, dtype=torch.float32).requires_grad_(True)  # ← Critical!
+> > E_train = torch.tensor(E_train_np, dtype=torch.float32)
+> > E_valid = torch.tensor(E_valid_np, dtype=torch.float32)
+> > F_train = torch.tensor(F_train_np, dtype=torch.float32)
+> > F_valid = torch.tensor(F_valid_np, dtype=torch.float32)
+> > dD_dr_train = torch.tensor(dD_dr_train_np, dtype=torch.float32)
+> > dD_dr_valid = torch.tensor(dD_dr_valid_np, dtype=torch.float32)
+> > D_whole = torch.tensor(D_whole, dtype=torch.float32).requires_grad_(True)
 > > dD_dr_whole = torch.tensor(dD_dr_whole, dtype=torch.float32)
-> > E_numpy = torch.tensor(E_numpy, dtype=torch.float32)
-> > F_numpy = torch.tensor(F_numpy, dtype=torch.float32)
-> >
+> > E_numpy_tensor = torch.tensor(E_numpy, dtype=torch.float32)
+> > F_numpy_tensor = torch.tensor(F_numpy, dtype=torch.float32)
+> > # ========================
 > > # 3. Model Definition
-> > import torch.nn as nn
-> >
+> > # ========================
 > > class FFNet(nn.Module):
 > >     def __init__(self, n_features, n_hidden, n_out):
 > >         super(FFNet, self).__init__()
@@ -1161,147 +1159,158 @@ plt.show()
 > >         self.activation = nn.Sigmoid()
 > >         self.linear2 = nn.Linear(n_hidden, n_out)
 > >         nn.init.normal_(self.linear2.weight, mean=0, std=1.0)
-> >
 > >     def forward(self, x):
 > >         x = self.linear1(x)
 > >         x = self.activation(x)
 > >         x = self.linear2(x)
 > >         return x
-> >
 > > def energy_force_loss(E_pred, E_true, F_pred, F_true):
 > >     energy_loss = torch.mean((E_pred - E_true) ** 2) / var_energy_train
 > >     force_loss = torch.mean((F_pred - F_true) ** 2) / var_force_train
 > >     return energy_loss + force_loss
-> >
 > > # Initialize model and optimizer
 > > model = FFNet(n_features=4, n_hidden=5, n_out=1)
 > > optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
-> >
-> > # 4. Training Loop with Early Stopping
+> > # ========================
+> > # 4. Training Loop
+> > # ========================
 > > n_max_epochs = 5000
 > > batch_size = 2
 > > patience = 20
 > > i_worse = 0
 > > old_valid_loss = float("inf")
 > > best_valid_loss = float("inf")
-> >
-> > D_valid.requires_grad = True
-> >
+> > print("Starting training...\n")
 > > for epoch in range(n_max_epochs):
+> >     model.train()
 > >     permutation = torch.randperm(D_train.size(0))
-> >
+> >     epoch_loss = 0.0
+> >     num_batches = 0
 > >     for i in range(0, D_train.size(0), batch_size):
 > >         indices = permutation[i:i + batch_size]
 > >         D_batch = D_train[indices]
-> >         D_batch.requires_grad = True
+> >         D_batch.requires_grad = True  # Enable gradient tracking
 > >         E_batch = E_train[indices]
 > >         F_batch = F_train[indices]
 > >         dD_dr_batch = dD_dr_train[indices]
-> >
 > >         # Forward pass
 > >         E_pred = model(D_batch)
-> >
-> >         # Gradient of energy w.r.t. descriptor
-> >         dE_dD = torch.autograd.grad(
+> >         # Compute dE/dD for force prediction
+> >         dE_dD = grad(
 > >             outputs=E_pred,
 > >             inputs=D_batch,
 > >             grad_outputs=torch.ones_like(E_pred),
-> >             create_graph=True
+> >             create_graph=True,
+> >             retain_graph=True
 > >         )[0]
-> >
-> >         # Predict forces: F_i = - dE/dD · dD/dr_i
+> >         # Predict forces: F = -∇ᵣE = -∑ (dD/dR · dE/dD)
 > >         F_pred = -torch.einsum('ijkl,il->ijk', dD_dr_batch, dE_dD)
-> >
-> >         # Backprop
-> >         optimizer.zero_grad()
+> >         # Loss
 > >         loss = energy_force_loss(E_pred, E_batch, F_pred, F_batch)
+> >         # Optimization
+> >         optimizer.zero_grad()
 > >         loss.backward()
 > >         optimizer.step()
-> >
-> >     # Validation
+> >         epoch_loss += loss.item()
+> >        num_batches += 1
+> > 
+> >     avg_loss = epoch_loss / num_batches
+> > 
+> >     # Validation (with gradient computation for forces)
 > >     model.eval()
-> >     with torch.no_grad():
+> >     with torch.enable_grad():  # ← Allows gradient computation even in eval mode
 > >         E_valid_pred = model(D_valid)
-> >         dE_dD_valid = torch.autograd.grad(
+> >         dE_dD_valid = grad(
 > >             outputs=E_valid_pred,
 > >             inputs=D_valid,
 > >             grad_outputs=torch.ones_like(E_valid_pred),
+> >             create_graph=False,
+> >             retain_graph=False
 > >         )[0]
 > >         F_valid_pred = -torch.einsum('ijkl,il->ijk', dD_dr_valid, dE_dD_valid)
 > >         valid_loss = energy_force_loss(E_valid_pred, E_valid, F_valid_pred, F_valid)
-> >
+> >     # Early stopping
 > >     if valid_loss < best_valid_loss:
 > >         torch.save(model.state_dict(), "best_model_sm.pt")
 > >         best_valid_loss = valid_loss
-> >
-> >     if valid_loss >= old_valid_loss:
-> >         i_worse += 1
-> >     else:
 > >         i_worse = 0
-> >
+> >     else:
+> >         i_worse += 1
+> > 
 > >     if i_worse > patience:
 > >         print(f"Early stopping at epoch {epoch}")
 > >         break
-> >
-> >     old_valid_loss = valid_loss
-> >
+> > 
 > >     if epoch % 500 == 0:
-> >         print(f"Epoch {epoch}, Loss: {loss.item():.6f}")
-> >
+> >         print(f"Epoch {epoch}, Train Loss: {avg_loss:.6f}, Valid Loss: {valid_loss:.6f}")
+> > 
+> > 
+> > # ========================
 > > # 5. Evaluation on Full Dataset
+> > # ========================
+> > 
+> > print("\nLoading best model and evaluating on full dataset...")
 > > model.load_state_dict(torch.load("best_model_sm.pt"))
 > > model.eval()
-> >
-> > D_whole.requires_grad = True
-> > E_whole_pred = model(D_whole)
-> > dE_dD_whole = torch.autograd.grad(
-> >     outputs=E_whole_pred,
-> >     inputs=D_whole,
-> >     grad_outputs=torch.ones_like(E_whole_pred)
-> > )[0]
-> > F_whole_pred = -torch.einsum('ijkl,il->ijk', dD_dr_whole, dE_dD_whole)
-> >
+> > 
+> > with torch.enable_grad():
+> >     E_whole_pred_raw = model(D_whole)
+> >     dE_dD_whole = grad(
+> >         outputs=E_whole_pred_raw,
+> >         inputs=D_whole,
+> >         grad_outputs=torch.ones_like(E_whole_pred_raw)
+> >     )[0]
+> >     F_whole_pred = -torch.einsum('ijkl,il->ijk', dD_dr_whole, dE_dD_whole)
+> > 
+> > # Convert to NumPy
+> > E_whole_pred = E_whole_pred_raw.detach().numpy().flatten()
+> > F_whole_pred = F_whole_pred.detach().numpy()
+> > 
 > > # Save predictions
-> > np.save("E_whole_pred.npy", E_whole_pred.detach().numpy())
-> > np.save("F_whole_pred.npy", F_whole_pred.detach().numpy())
-> >
+> > np.save("E_whole_pred.npy", E_whole_pred)
+> > np.save("F_whole_pred.npy", F_whole_pred)
+> > 
+> > 
+> > # ========================
 > > # 6. Visualization
-> > import matplotlib.pyplot as plt
-> > from sklearn.metrics import mean_absolute_error
-> >
+> > # ========================
+> > 
 > > r_whole = np.load("r.npy")
-> > E_whole = np.load("E.npy")
-> > F_whole = np.load("F.npy")
-> > E_pred = np.load("E_whole_pred.npy").flatten()
-> > F_pred = np.load("F_whole_pred.npy")
-> >
+> > E_true = np.load("E.npy")
+> > F_true = np.load("F.npy")
 > > order = np.argsort(r_whole)
-> >
+> > 
 > > fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 8))
-> >
-> > # Energy
-> > ax1.plot(r_whole[order], E_whole[order], label="True", linewidth=2)
-> > ax1.plot(r_whole[order], E_pred[order], '--', label="Predicted", linewidth=2)
+> > # Energy plot
+> > ax1.plot(r_whole[order], E_true[order], label="True", linewidth=2)
+> > ax1.plot(r_whole[order], E_whole_pred[order], '--', label="Predicted", linewidth=2)
 > > ax1.set_ylabel("Energy (eV)")
-> > mae_e = mean_absolute_error(E_whole, E_pred)
+> > mae_e = mean_absolute_error(E_true, E_whole_pred)
 > > ax1.text(0.95, 0.5, f"MAE: {mae_e:.3f} eV", transform=ax1.transAxes, ha="right")
 > > ax1.legend()
-> >
-> > # Force
-> > ax2.plot(r_whole[order], F_whole[:, 0, 0][order], label="True", linewidth=2)
-> > ax2.plot(r_whole[order], F_pred[:, 0, 0][order], '--', label="Predicted", linewidth=2)
+> > ax1.grid(True, alpha=0.3)
+> > 
+> > # Force plot (x-component of first atom)
+> > ax2.plot(r_whole[order], F_true[:, 0, 0][order], label="True", linewidth=2)
+> > ax2.plot(r_whole[order], F_whole_pred[:, 0, 0][order], '--', label="Predicted", linewidth=2)
 > > ax2.set_xlabel("Distance (Å)")
 > > ax2.set_ylabel("Force (eV/Å)")
-> > mae_f = mean_absolute_error(F_whole[:, 0, 0], F_pred[:, 0, 0])
+> > mae_f = mean_absolute_error(F_true[:, 0, 0], F_whole_pred[:, 0, 0])
 > > ax2.text(0.95, 0.5, f"MAE: {mae_f:.3f} eV/Å", transform=ax2.transAxes, ha="right")
 > > ax2.legend()
-> >
+> > ax2.grid(True, alpha=0.3)
+> > 
 > > plt.suptitle("Sine Matrix + NN: Energy and Force Prediction")
 > > plt.tight_layout()
 > > plt.savefig("energy_force_comparison_sine.png", dpi=150)
 > > plt.show()
-> >
+> > 
 > > print("\nTraining complete. Results saved.")
+> > print("Files generated:")
+> > print("  - r.npy, E.npy, D.npy, dD_dr.npy, F.npy")
+> > print("  - E_whole_pred.npy, F_whole_pred.npy")
+> > print("  - best_model_sm.pt")
+> > print("  - LJ_energy_vs_distance.png, energy_force_comparison_sine.png")
 > > ~~~
 > > {: .python}
 > {: .solution}
