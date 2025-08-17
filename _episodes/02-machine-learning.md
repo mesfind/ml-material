@@ -953,3 +953,37 @@ SVM Energy Prediction MAE: 0.0970 eV
 > {: .solution}
 {: .challenge}
 
+## Formation energy
+
+Formation energy prediction using machine learning (ML) is a powerful approach in materials science to estimate the stability and thermodynamic properties of compounds. Formation energy quantifies the energy change when a compound forms from its constituent elements and serves as a key indicator of material stability—the lower (more negative) the formation energy, the more stable the material.
+
+Machine learning models for predicting formation energy leverage large datasets of materials' properties and compositions to learn complex relationships between elemental or structural features and the resulting formation energies. These models can range from traditional linear regression and decision trees to advanced neural networks incorporating crystal symmetry and atomic descriptors.
+
+The advantage of using ML for formation energy prediction lies in its efficiency and accuracy compared to costly and time-consuming quantum mechanical calculations. ML models can quickly screen and identify stable materials from a vast chemical space, accelerating the discovery and design of new materials.
+
+Recent advances have shown that ML models can achieve high predictive accuracy even without detailed crystal structure information by focusing on elemental properties like electronegativity and electron affinity. Incorporating structural descriptors such as space group symmetry further enhances prediction performance. The interpretability of these models also offers insights into the underlying factors that govern material stability
+
+Garnet structures refer to a well-known type of crystal structure found in a group of silicate minerals called garnets. These minerals share a common crystal framework characterized by a complex, three-dimensional arrangement of atoms, which affects their physical and chemical properties. Garnets commonly appear in many geological and materials science contexts due to their robust structure and various industrial applications.
+
+~~~
+from __future__ import annotations
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from pymatgen.core import Structure
+from sklearn.linear_model import LinearRegression
+
+from maml.describers import DistinctSiteProperty
+from maml.models import SKLModel
+
+# Enable inline plotting
+%matplotlib inline
+
+# Prepare the data
+df = pd.read_csv("garnet.csv")
+df = df[df["FormEnergyPerAtom"] > -5]
+
+# Display the first few rows of the dataset
+df.head()
+~~~
+{: .python}
