@@ -713,9 +713,9 @@ $$
 
 This ensures the model learns to predict both energies and forces effectively. Together, these components form a pipeline where SOAP descriptors combined with neural networks and analytic derivatives enable accurate and efficient prediction of atomic energies and forces for molecular and materials simulations.
 
-### Dataset generation
+### Dataset preparation
 
-This script generates a training dataset of Lennard-Jones energies and forces for a simple two-atom system with varying interatomic distances. It uses the SOAP descriptor to characterize atomic environments and includes computation of analytical derivatives needed for force prediction.
+This script prepare a training dataset of Lennard-Jones energies and forces for a simple two-atom system with varying interatomic distances. It uses the SOAP descriptor to characterize atomic environments and includes computation of analytical derivatives needed for force prediction.
 ~~~
 import numpy as np
 import ase
@@ -745,6 +745,7 @@ for i, d in enumerate(distances):
     # Create two hydrogen atoms separated by distance d along x-axis
     atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
     atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+    atoms.cal = cal
     traj.append(atoms)
     
     energies[i] = atoms.get_total_energy()
