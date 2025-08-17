@@ -680,3 +680,111 @@ It is part of the **Crystal Metric Representations (CMR)** family and is designe
 {: .challenge}
 
 # Machine Learning 
+
+# Deep learning
+## ANN
+
+
+The Smooth Overlap of Atomic Positions (SOAP) descriptor encodes the local atomic environment by representing the neighboring atomic density around each atom using expansions in spherical harmonics and radial basis functions within a cutoff radius. Parameters such as the cutoff radius, number of radial basis functions, maximum degree of spherical harmonics, and Gaussian smearing width control the descriptor's resolution and size. The DScribe library efficiently computes these SOAP descriptors along with their derivatives with respect to atomic positions, enabling force predictions.
+
+In machine learning models, the SOAP descriptor $$\mathbf{D}$$ serves as the input to predict system properties like total energy through a function $$ f(\mathbf{D}) $$. The predicted forces on atom $$ i $$, denoted $$\hat{\mathbf{F}}_i$$, are obtained as the negative gradient of the predicted energy with respect to that atom’s position $$\mathbf{r}_i$$, expressed as:
+
+$$
+\hat{\mathbf{F}}_i = - \nabla_{\mathbf{r}_i} f(\mathbf{D}) = - \nabla_{\mathbf{D}} f \cdot \nabla_{\mathbf{r}_i} \mathbf{D}
+$$
+
+Here, $$\nabla_{\mathbf{D}} f$$ is the derivative of the model output with respect to the descriptor, which neural networks provide analytically, and $$\nabla_{\mathbf{r}_i} \mathbf{D}$$ is the Jacobian matrix of descriptor derivatives with respect to atomic coordinates, given by DScribe for SOAP. This equation expands as the dot product between the row vector of partial derivatives of the energy with respect to descriptor components and the matrix of derivatives of each descriptor component with respect to spatial coordinates:
+
+$$
+\hat{\mathbf{F}}_i = - \begin{bmatrix}
+\frac{\partial f}{\partial D_1} & \frac{\partial f}{\partial D_2} & \dots
+\end{bmatrix}
+\begin{bmatrix}
+\frac{\partial D_1}{\partial x_i} & \frac{\partial D_1}{\partial y_i} & \frac{\partial D_1}{\partial z_i} \\
+\frac{\partial D_2}{\partial x_i} & \frac{\partial D_2}{\partial y_i} & \frac{\partial D_2}{\partial z_i} \\
+\vdots & \vdots & \vdots \\
+\end{bmatrix}
+$$
+
+DScribe organizes these derivatives such that the last dimension corresponds to descriptor features, optimizing performance in row-major data formats such as NumPy or C/C++ by making the dot product over the fastest-varying dimension more efficient, although this layout can be adapted as needed.
+
+Training requires a dataset composed of feature vectors $$\mathbf{D}$$, their derivatives $$\nabla_{\mathbf{r}} \mathbf{D}$$, as well as reference energies $$E$$ and forces $$\mathbf{F}$$. The loss function is formed by summing the mean squared errors (MSE) of energy and force predictions, each scaled by the inverse variance of the respective quantities in the training data to balance their contribution:
+
+$$
+\text{Loss} = \frac{1}{\sigma_E^2} \mathrm{MSE}(E, \hat{E}) + \frac{1}{\sigma_F^2} \mathrm{MSE}(\mathbf{F}, \hat{\mathbf{F}})
+$$
+
+This ensures the model learns to predict both energies and forces effectively. Together, these components form a pipeline where SOAP descriptors combined with neural networks and analytic derivatives enable accurate and efficient prediction of atomic energies and forces for molecular and materials simulations.
+
+### Dataset generation
+
+This script generates a training dataset of Lennard-Jones energies and forces for a simple two-atom system with varying interatomic distances. It uses the SOAP descriptor to characterize atomic environments and includes computation of analytical derivatives needed for force prediction.
+~~~
+import numpy as np
+import ase
+from ase.calculators.lj import LennardJones
+import matplotlib.pyplot as plt
+from dscribe.descriptors import SOAP
+
+# Initialize SOAP descriptor
+soap = SOAP(
+    species=["H"],
+    periodic=False,
+    r_cut=5.0,
+    sigma=0.5,
+    n_max=3,
+    l_max=0,
+)
+
+# Generate data for 200 samples with distances from 2.5 to 5.0 Å
+n_samples = 200
+traj = []
+n_atoms = 2
+energies = np.zeros(n_samples)
+forces = np.zeros((n_samples, n_atoms, 3))
+distances = np.linspace(2.5, 5.0, n_samples)
+
+for i, d in enumerate(distances):
+    # Create two hydrogen atoms separated by distance d along x-axis
+    atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
+    atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+    traj.append(atoms)
+    
+    energies[i] = atoms.get_total_energy()
+    forces[i] = atoms.get_forces()
+
+# Validate energies by plotting against distance
+plt.figure(figsize=(8,5))
+plt.plot(distances, energies, label="Energy")
+plt.xlabel("Distance (Å)")
+plt.ylabel("Energy (eV)")
+plt.title("Lennard-Jones Energies vs Distance")
+plt.grid(True)
+plt.savefig("Lennard-Jones_Energies_vs_Distance.png")
+plt.show()
+
+# Compute SOAP descriptors and their analytical derivatives with respect to atomic positions
+# The center is fixed at the midpoint between the two atoms
+derivatives, descriptors = soap.derivatives(
+    traj,
+    centers=[[[0, 0, 0]]] * n_samples,
+    method="analytical"
+)
+
+# Save datasets for training
+np.save("r.npy", distances)
+np.save("E.npy", energies)
+np.save("D.npy", descriptors)
+np.save("dD_dr.npy", derivatives)
+np.save("F.npy", forces)
+~~~
+{: .python}
+
+The energies obtained from the Lennard-Jones two-atom system as a function of interatomic distance typically exhibit a characteristic curve, where the energy decreases sharply as the atoms approach each other, reaches a minimum at the equilibrium bond length, and then rises gradually as the atoms move further apart. This shape reflects the balance between attractive and repulsive forces in the Lennard-Jones potential.
+~~~markdown
+![](Lennard-Jones_Energies_vs_Distance.png)
+~~~
+
+In the plotted energy vs. distance graph, you will see a smooth curve starting at a higher energy around shorter distances (due to strong repulsion), dipping to a minimum energy near the equilibrium separation (around 3.0 Å for the parameters used), and then slowly increasing as the distance increases (weaker attraction).
+
+This energy profile validates the dataset by demonstrating the physically meaningful behavior of the system’s interaction potential, which the machine learning model aims to learn and reproduce.
