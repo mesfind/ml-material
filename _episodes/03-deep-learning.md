@@ -593,224 +593,406 @@ MLP(
 The above output indicates more complex multi-layer perceptron (MLP) neural network architecture compared to the previous ANN example above.
 
 
-### Regression Model with Neural Networks
+### Neural Networks with descriptors 
 
-Because it is not directly compatible with PyTorch, we cannot simply feed the data to our PyTorch neural network. For doing so, it needs to be prepared. This is actually quite easy: we can create a PyTorch Dataset for this purpose.
+
+The Smooth Overlap of Atomic Positions (SOAP) descriptor encodes the local atomic environment by representing the neighboring atomic density around each atom using expansions in spherical harmonics and radial basis functions within a cutoff radius. Parameters such as the cutoff radius, number of radial basis functions, maximum degree of spherical harmonics, and Gaussian smearing width control the descriptor's resolution and size. The DScribe library efficiently computes these SOAP descriptors along with their derivatives with respect to atomic positions, enabling force predictions.
+
+In machine learning models, the SOAP descriptor $$\mathbf{D}$$ serves as the input to predict system properties like total energy through a function $$ f(\mathbf{D}) $$. The predicted forces on atom $$ i $$, denoted $$\hat{\mathbf{F}}_i$$, are obtained as the negative gradient of the predicted energy with respect to that atom’s position $$\mathbf{r}_i$$, expressed as:
+
+$$
+\hat{\mathbf{F}}_i = - \nabla_{\mathbf{r}_i} f(\mathbf{D}) = - \nabla_{\mathbf{D}} f \cdot \nabla_{\mathbf{r}_i} \mathbf{D}
+$$
+
+Here, $$\nabla_{\mathbf{D}} f$$ is the derivative of the model output with respect to the descriptor, which neural networks provide analytically, and $$\nabla_{\mathbf{r}_i} \mathbf{D}$$ is the Jacobian matrix of descriptor derivatives with respect to atomic coordinates, given by DScribe for SOAP. This equation expands as the dot product between the row vector of partial derivatives of the energy with respect to descriptor components and the matrix of derivatives of each descriptor component with respect to spatial coordinates:
+
+$$
+\hat{\mathbf{F}}_i = - \begin{bmatrix}
+\frac{\partial f}{\partial D_1} & \frac{\partial f}{\partial D_2} & \dots
+\end{bmatrix}
+\begin{bmatrix}
+\frac{\partial D_1}{\partial x_i} & \frac{\partial D_1}{\partial y_i} & \frac{\partial D_1}{\partial z_i} \\
+\frac{\partial D_2}{\partial x_i} & \frac{\partial D_2}{\partial y_i} & \frac{\partial D_2}{\partial z_i} \\
+\vdots & \vdots & \vdots \\
+\end{bmatrix}
+$$
+
+DScribe organizes these derivatives such that the last dimension corresponds to descriptor features, optimizing performance in row-major data formats such as NumPy or C/C++ by making the dot product over the fastest-varying dimension more efficient, although this layout can be adapted as needed.
+
+Training requires a dataset composed of feature vectors $$\mathbf{D}$$, their derivatives $$\nabla_{\mathbf{r}} \mathbf{D}$$, as well as reference energies $$E$$ and forces $$\mathbf{F}$$. The loss function is formed by summing the mean squared errors (MSE) of energy and force predictions, each scaled by the inverse variance of the respective quantities in the training data to balance their contribution:
+
+$$
+\text{Loss} = \frac{1}{\sigma_E^2} \mathrm{MSE}(E, \hat{E}) + \frac{1}{\sigma_F^2} \mathrm{MSE}(\mathbf{F}, \hat{\mathbf{F}})
+$$
+
+This ensures the model learns to predict both energies and forces effectively. Together, these components form a pipeline where SOAP descriptors combined with neural networks and analytic derivatives enable accurate and efficient prediction of atomic energies and forces for molecular and materials simulations.
+
+### Dataset generation
+
+This script generates a training dataset of Lennard-Jones energies and forces for a simple two-atom system with varying interatomic distances. It uses the SOAP descriptor to characterize atomic environments and includes computation of analytical derivatives needed for force prediction.
+~~~
+import numpy as np
+import ase
+from ase.calculators.lj import LennardJones
+import matplotlib.pyplot as plt
+from dscribe.descriptors import SOAP
+
+# Initialize SOAP descriptor
+soap = SOAP(
+    species=["H"],
+    periodic=False,
+    r_cut=5.0,
+    sigma=0.5,
+    n_max=3,
+    l_max=0,
+)
+
+# Generate data for 200 samples with distances from 2.5 to 5.0 Å
+n_samples = 200
+traj = []
+n_atoms = 2
+energies = np.zeros(n_samples)
+forces = np.zeros((n_samples, n_atoms, 3))
+distances = np.linspace(2.5, 5.0, n_samples)
+
+for i, d in enumerate(distances):
+    # Create two hydrogen atoms separated by distance d along x-axis
+    atoms = ase.Atoms('HH', positions=[[-0.5 * d, 0, 0], [0.5 * d, 0, 0]])
+    atoms.set_calculator(LennardJones(epsilon=1.0, sigma=2.9))
+    traj.append(atoms)
+    
+    energies[i] = atoms.get_total_energy()
+    forces[i] = atoms.get_forces()
+
+# Validate energies by plotting against distance
+plt.figure(figsize=(8,5))
+plt.plot(distances, energies, label="Energy")
+plt.xlabel("Distance (Å)")
+plt.ylabel("Energy (eV)")
+plt.title("Lennard-Jones Energies vs Distance")
+plt.grid(True)
+plt.savefig("Lennard-Jones_Energies_vs_Distance.png")
+plt.show()
+
+# Compute SOAP descriptors and their analytical derivatives with respect to atomic positions
+# The center is fixed at the midpoint between the two atoms
+derivatives, descriptors = soap.derivatives(
+    traj,
+    centers=[[[0, 0, 0]]] * n_samples,
+    method="analytical"
+)
+
+# Save datasets for training
+np.save("r.npy", distances)
+np.save("E.npy", energies)
+np.save("D.npy", descriptors)
+np.save("dD_dr.npy", derivatives)
+np.save("F.npy", forces)
+~~~
+{: .python}
+
+The energies obtained from the Lennard-Jones two-atom system as a function of interatomic distance typically exhibit a characteristic curve, where the energy decreases sharply as the atoms approach each other, reaches a minimum at the equilibrium bond length, and then rises gradually as the atoms move further apart. This shape reflects the balance between attractive and repulsive forces in the Lennard-Jones potential.
+
+![](Lennard-Jones_Energies_vs_Distance.png)
+
+In the plotted energy vs. distance graph, you will see a smooth curve starting at a higher energy around shorter distances (due to strong repulsion), dipping to a minimum energy near the equilibrium separation (around 3.0 Å for the parameters used), and then slowly increasing as the distance increases (weaker attraction).
+
+This energy profile validates the dataset by demonstrating the physically meaningful behavior of the system’s interaction potential, which the machine learning model aims to learn and reproduce.
+
+### Training
+
+The training example uses **PyTorch**, which must be installed to run the code. The full PyTorch script is available at *examples/forces_and_energies/training_pytorch.py* in the GitHub repository. An equivalent TensorFlow implementation, contributed by xScoschx, can be found at *examples/forces_and_energies/training_tensorflow.py*.
+
+We begin by loading and preparing the dataset. The SOAP descriptors and their derivatives, energies, and forces are loaded from the saved NumPy files. To improve learning efficiency, the input features (descriptors) and their derivatives are standardized using the training subset. A subset of 30 equally spaced samples is selected for training, with 20% reserved for validation via random splitting. The corresponding data arrays are then converted into PyTorch tensors, with training and validation sets for descriptors, energies, forces, and descriptor derivatives.
 
 ~~~
-import copy
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+import torch
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# Set random seed for reproducibility
+torch.manual_seed(7)
+
+# Load dataset from saved numpy files
+D_numpy = np.load("D.npy")[:, 0, :]            # SOAP descriptors: one center per sample
+E_numpy = np.load("E.npy")[..., np.newaxis]    # Energies, reshaped to (n_samples, 1)
+F_numpy = np.load("F.npy")                      # Forces
+dD_dr_numpy = np.load("dD_dr.npy")[:, 0, :, :, :]  # Descriptor derivatives for one SOAP center
+r_numpy = np.load("r.npy")                      # Distances
+
+n_samples, n_features = D_numpy.shape
+
+# Select equally spaced indices for training set
+n_train = 30
+idx = np.linspace(0, n_samples - 1, n_train).astype(int)
+
+D_train_full = D_numpy[idx]
+E_train_full = E_numpy[idx]
+F_train_full = F_numpy[idx]
+dD_dr_train_full = dD_dr_numpy[idx]
+r_train_full = r_numpy[idx]
+
+# Standardize descriptors (mean=0, std=1) based on training data
+scaler = StandardScaler().fit(D_train_full)
+D_train_full = scaler.transform(D_train_full)
+D_whole = scaler.transform(D_numpy)
+
+# Scale descriptor derivatives by the same standard deviation factors
+scale_factors = scaler.scale_[None, None, None, :]
+dD_dr_train_full = dD_dr_train_full / scale_factors
+dD_dr_whole = dD_dr_numpy / scale_factors
+
+# Compute variance of energies and forces in the training set for loss weighting
+var_energy_train = np.var(E_train_full)
+var_force_train = np.var(F_train_full)
+
+# Split training data into training and validation subsets (20% validation)
+D_train, D_valid, E_train, E_valid, F_train, F_valid, dD_dr_train, dD_dr_valid = train_test_split(
+    D_train_full,
+    E_train_full,
+    F_train_full,
+    dD_dr_train_full,
+    test_size=0.2,
+    random_state=7
+)
+
+# Convert all data arrays to PyTorch tensors for model input
+D_whole = torch.tensor(D_whole, dtype=torch.float32)
+D_train = torch.tensor(D_train, dtype=torch.float32)
+D_valid = torch.tensor(D_valid, dtype=torch.float32)
+E_train = torch.tensor(E_train, dtype=torch.float32)
+E_valid = torch.tensor(E_valid, dtype=torch.float32)
+F_train = torch.tensor(F_train, dtype=torch.float32)
+F_valid = torch.tensor(F_valid, dtype=torch.float32)
+dD_dr_train = torch.tensor(dD_dr_train, dtype=torch.float32)
+dD_dr_valid = torch.tensor(dD_dr_valid, dtype=torch.float32)
+~~~
+{: .python}
+
+### Model Building
+
+The model is a simple feed-forward neural network designed to predict atomic system energies from SOAP descriptors. It consists of one hidden layer with sigmoid activation and a linear output layer that produces scalar energy predictions. This straightforward architecture allows efficient training while enabling analytical computation of energy derivatives necessary for force predictions
+~~~
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from sklearn.model_selection import train_test_split 
-from sklearn.datasets import fetch_california_housing 
-from sklearn.preprocessing import StandardScaler
-from torch.utils.data import DataLoader, TensorDataset 
-from tqdm.notebook import tqdm
-import warnings
-import seaborn as sns
-sns.set()
-warnings.filterwarnings("ignore")
-# Set fixed random number seed
-torch.manual_seed(42);
 
-url = 'https://raw.githubusercontent.com/mesfind/datasets/master/temp_anomalies.csv'
-df = pd.read_csv(url)
-df['Year'] = df['Year'].str.strip()
-df = df.rename(columns={'Year': 'date', 'Mean': 'anomalies'})
-df['date'] = pd.to_datetime(df['date'])
-df['year'] = df['date'].dt.year
-df['month'] = df['date'].dt.month
-df.head()
-~~~
-{: .python}
+class FFNet(nn.Module):
+    """
+    Simple feed-forward neural network with:
+    - One hidden layer
+    - Normally initialized weights
+    - Sigmoid activation
+    - Linear output layer
+    """
+    def __init__(self, n_features, n_hidden, n_out):
+        super(FFNet, self).__init__()
+        self.linear1 = nn.Linear(n_features, n_hidden)
+        nn.init.normal_(self.linear1.weight, mean=0, std=1.0)
+        self.activation = nn.Sigmoid()
+        self.linear2 = nn.Linear(n_hidden, n_out)
+        nn.init.normal_(self.linear2.weight, mean=0, std=1.0)
 
-~~~
-  Source       date  anomalies  year  month
-0   gcag 1850-01-01    -0.6746  1850      1
-1   gcag 1850-02-01    -0.3334  1850      2
-2   gcag 1850-03-01    -0.5913  1850      3
-3   gcag 1850-04-01    -0.5887  1850      4
-4   gcag 1850-05-01    -0.5088  1850      5
-~~~
-{: .output}
-
-Defining a list of column names—'month', 'year', and 'anomalies' that are intended to be retained from the original DataFrame df. The line df = df[columns] filters the DataFrame to include only these specified columns, effectively discarding any other columns that may have been present. Finally, the method df.head() is called to display the first few rows of the modified DataFrame, allowing for a quick inspection of the data structure and contents after the filtering operation. 
-
-
-When training on a machine that has a GPU, you need to tell PyTorch you want to use it • You’ll see the following at the top of most PyTorch code:
-
-~~~
-device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
-~~~
-{: .python}
-
-
-### Representing the Dataset as Tensor
-
-Because it is not directly compatible with PyTorch, we cannot simply feed the data to our PyTorch neural network. For doing so, it needs to be prepared. This is actually quite easy: we can create a PyTorch Dataset for this purpose.
-
-~~~
-class MLP(nn.Module): 
-    def __init__(self):
-        super(MLP, self).__init__()
-        self.layer1 = nn.Linear(8, 24)
-        self.relu1 = nn.ReLU()
-        self.layer2 = nn.Linear(24, 12)
-        self.relu2 = nn.ReLU()
-        self.layer3 = nn.Linear(12, 6)
-        self.relu3 = nn.ReLU()
-        self.layer4 = nn.Linear(6, 1)
-    def forward(self, x): 
-        x = self.layer1(x) 
-        x = self.relu1(x) 
-        x = self.layer2(x) 
-        x = self.relu2(x) 
-        x = self.layer3(x) 
-        x = self.relu3(x) 
-        x = self.layer4(x) 
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.linear2(x)
         return x
 
-model = MLP()
-device = 'cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu')
-# Check the selected device
-print("Selected device:", device)
-model.to(device)
+def energy_force_loss(E_pred, E_true, F_pred, F_true):
+    """
+    Combined loss function including energy and force mean squared errors,
+    normalized by their respective training variances to balance their contributions.
+    """
+    energy_loss = torch.mean((E_pred - E_true) ** 2) / var_energy_train
+    force_loss = torch.mean((F_pred - F_true) ** 2) / var_force_train
+    return energy_loss + force_loss
+
+# Initialize the model with desired architecture
+model = FFNet(n_features, n_hidden=5, n_out=1)
+
+# Use Adam optimizer for parameter updates
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+~~~
+{: .python}
+
+Next, we define the training loop, which incorporates mini-batch training and early stopping to avoid overfitting.
+
+~~~
+# Training parameters
+n_max_epochs = 5000
+batch_size = 2
+patience = 20          # Early stopping patience
+i_worse = 0
+old_valid_loss = float("Inf")
+best_valid_loss = float("Inf")
+
+# Enable gradient calculation for validation descriptors (needed for force predictions)
+D_valid.requires_grad = True
+
+for epoch in range(n_max_epochs):
+    # Shuffle training data indices at the start of each epoch
+    permutation = torch.randperm(D_train.size(0))
+
+    for i in range(0, D_train.size(0), batch_size):
+        indices = permutation[i:i + batch_size]
+        
+        # Select batch data and enable gradients for descriptors
+        D_train_batch = D_train[indices]
+        D_train_batch.requires_grad = True
+        E_train_batch = E_train[indices]
+        F_train_batch = F_train[indices]
+        dD_dr_train_batch = dD_dr_train[indices]
+
+        # Forward pass: predict energies
+        E_train_pred_batch = model(D_train_batch)
+
+        # Compute gradients of energy predictions with respect to input descriptors
+        df_dD_train_batch = torch.autograd.grad(
+            outputs=E_train_pred_batch,
+            inputs=D_train_batch,
+            grad_outputs=torch.ones_like(E_train_pred_batch),
+            create_graph=True
+        )[0]
+
+        # Compute predicted forces by chain rule using descriptor derivatives
+        F_train_pred_batch = -torch.einsum('ijkl,il->ijk', dD_dr_train_batch, df_dD_train_batch)
+
+        # Backpropagation and optimization step
+        optimizer.zero_grad()
+        loss = energy_force_loss(E_train_pred_batch, E_train_batch, F_train_pred_batch, F_train_batch)
+        loss.backward()
+        optimizer.step()
+
+    # Validation step to monitor loss and implement early stopping
+    E_valid_pred = model(D_valid)
+    df_dD_valid = torch.autograd.grad(
+        outputs=E_valid_pred,
+        inputs=D_valid,
+        grad_outputs=torch.ones_like(E_valid_pred),
+    )[0]
+
+    F_valid_pred = -torch.einsum('ijkl,il->ijk', dD_dr_valid, df_dD_valid)
+    valid_loss = energy_force_loss(E_valid_pred, E_valid, F_valid_pred, F_valid)
+
+    if valid_loss < best_valid_loss:
+        torch.save(model.state_dict(), "best_model.pt")
+        best_valid_loss = valid_loss
+
+    if valid_loss >= old_valid_loss:
+        i_worse += 1
+    else:
+        i_worse = 0
+
+    if i_worse > patience:
+        print(f"Early stopping at epoch {epoch}")
+        break
+
+    old_valid_loss = valid_loss
+
+    if epoch % 500 == 0:
+        print(f"Finished epoch: {epoch} with loss: {loss.item()}")
+
+# Load best model and switch to evaluation mode
+model.load_state_dict(torch.load("best_model.pt"))
+model.eval()
+
+# Predict energies and forces on the entire dataset
+E_whole = torch.tensor(E_numpy, dtype=torch.float32)
+F_whole = torch.tensor(F_numpy, dtype=torch.float32)
+dD_dr_whole = torch.tensor(dD_dr_whole, dtype=torch.float32)
+
+D_whole.requires_grad = True
+E_whole_pred = model(D_whole)
+df_dD_whole = torch.autograd.grad(
+    outputs=E_whole_pred,
+    inputs=D_whole,
+    grad_outputs=torch.ones_like(E_whole_pred),
+)[0]
+F_whole_pred = -torch.einsum('ijkl,il->ijk', dD_dr_whole, df_dD_whole)
+
+# Detach predictions from the graph and convert to numpy arrays
+E_whole_pred = E_whole_pred.detach().numpy()
+E_whole = E_whole.detach().numpy()
+
+# Save results for later analysis
+np.save("r_train_full.npy", r_train_full)
+np.save("E_train_full.npy", E_train_full)
+np.save("F_train_full.npy", F_train_full)
+np.save("E_whole_pred.npy", E_whole_pred)
+np.save("F_whole_pred.npy", F_whole_pred)
 ~~~
 {: .python}
 
 ~~~
-Selected device: mps
-Out[13]: 
-MLP(
-  (layer1): Linear(in_features=8, out_features=24, bias=True)
-  (relu1): ReLU()
-  (layer2): Linear(in_features=24, out_features=12, bias=True)
-  (relu2): ReLU()
-  (layer3): Linear(in_features=12, out_features=6, bias=True)
-  (relu3): ReLU()
-  (layer4): Linear(in_features=6, out_features=1, bias=True)
-)
+Finished epoch: 0 with loss: 21.220672607421875
+Finished epoch: 500 with loss: 7.523424574173987e-05
+Finished epoch: 1000 with loss: 1.699954373179935e-05
+Early stopping at epoch 1010
 ~~~
 {: .output}
 
-The above output describes the architecture of a Multi-Layer Perceptron (MLP) model defined using PyTorch. This model is intended for use on an Apple device with a Metal Performance Shaders (MPS) backend, as indicated by "Selected device: mps". 
-
-
-The following code snippet demonstrates how to read data into a pandas DataFrame and display the first few rows of the dataset. This is a common practice in data preprocessing and exploration. Let's break down each part of the code:
+To quickly evaluate the model’s performance, we plot its predicted energies and forces across the entire dataset and compare them against the reference values. This visual comparison reveals how well the model captures the underlying physical behavior within the input domain. The full analysis script, including error metrics and plotting routines, is available in the GitHub repository under examples/forces_and_energies/analysis.py.
 
 ~~~
-# Read data
-df = pd.DataFrame(dataset.data, columns=[dataset.feature_names])
-df.head()
-~~~
-{: .python}
+import numpy as np
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_absolute_error
 
+# Load data produced by the trained model
+r_whole = np.load("r.npy")
+r_train_full = np.load("r_train_full.npy")
+E_whole = np.load("E.npy")
+E_train_full = np.load("E_train_full.npy")
+E_whole_pred = np.load("E_whole_pred.npy")
+F_whole = np.load("F.npy")
+F_train_full = np.load("F_train_full.npy")
+F_whole_pred = np.load("F_whole_pred.npy")
 
-~~~
-   MedInc HouseAge  AveRooms AveBedrms Population  AveOccup Latitude Longitude
-0  8.3252     41.0  6.984127  1.023810      322.0  2.555556    37.88   -122.23
-1  8.3014     21.0  6.238137  0.971880     2401.0  2.109842    37.86   -122.22
-2  7.2574     52.0  8.288136  1.073446      496.0  2.802260    37.85   -122.24
-3  5.6431     52.0  5.817352  1.073059      558.0  2.547945    37.85   -122.25
-4  3.8462     52.0  6.281853  1.081081      565.0  2.181467    37.85   -122.25
-~~~
-{: .output}
+# Sorting indices for consistent plotting
+order = np.argsort(r_whole)
 
+# Select force components for plotting
+F_x_whole_pred = F_whole_pred[order, 0, 0]
+F_x_whole = F_whole[:, 0, 0][order]
+F_x_train_full = F_train_full[:, 0, 0]
 
-~~~
-df["y"] = dataset.target
-X = df.drop('y',axis=1)
-y = df['y'].values
-y = y.reshape(-1,1)
+# Create subplots sharing the x-axis: Energy and Forces vs Distance
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 10))
 
+# Plot energies: true vs predicted
+ax1.plot(r_whole[order], E_whole[order], label="True", linewidth=3)
+ax1.plot(r_whole[order], E_whole_pred[order], label="Predicted", linewidth=3)
+ax1.set_ylabel('Energy (eV)', fontsize=15)
+mae_energy = mean_absolute_error(E_whole_pred, E_whole)
+ax1.text(0.95, 0.5, f"MAE: {mae_energy:.2f} eV", fontsize=16,
+         horizontalalignment='right', verticalalignment='center', transform=ax1.transAxes)
 
-# train-test split for model evaluation
-X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, train_size=0.7, shuffle=True)
+# Plot forces: true vs predicted
+ax2.plot(r_whole[order], F_x_whole, label="True", linewidth=3)
+ax2.plot(r_whole[order], F_x_whole_pred, label="Predicted", linewidth=3)
+ax2.set_xlabel('Distance (Å)', fontsize=15)
+ax2.set_ylabel('Force (eV/Å)', fontsize=15)
+mae_force = mean_absolute_error(F_x_whole_pred, F_x_whole)
+ax2.text(0.95, 0.5, f"MAE: {mae_force:.2f} eV/Å", fontsize=16,
+         horizontalalignment='right', verticalalignment='center', transform=ax2.transAxes)
 
-# Standardizing data
-scaler = StandardScaler()
-scaler.fit(X_train_raw)
-X_train = scaler.transform(X_train_raw)
-X_test = scaler.transform(X_test_raw)
-# Convert to 2D PyTorch tensors
-X_train = torch.tensor(X_train, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.float32).reshape(-1, 1)
-X_test = torch.tensor(X_test, dtype=torch.float32)
-y_test = torch.tensor(y_test, dtype=torch.float32).reshape(-1, 1)
-~~~
-{: .python}
+# Highlight training points on both plots
+ax1.scatter(r_train_full, E_train_full, marker="o", color="k", s=20,
+            label="Training points", zorder=3)
+ax2.scatter(r_train_full, F_x_train_full, marker="o", color="k", s=20,
+            label="Training points", zorder=3)
 
-
-Let's  demonstrates how to train a neural network in PyTorch using a Mean Squared Error (MSE) loss function and the Adam optimizer. The key steps involve initializing the model, defining the loss function and optimizer, iterating over multiple epochs, and processing data in batches. The code also tracks the best model based on the validation loss and restores the best weights after training. Additionally, it plots the training loss over epochs for visualization.
-
-1. **Setup:** Define the model, loss function, and optimizer.
-2. **Training Loop:** Iterate over multiple epochs, processing data in batches, and updating model weights.
-3. **Evaluation:** Calculate the validation loss at the end of each epoch to track the model's performance.
-4. **Best Model Tracking:** Save and restore the best model weights based on validation loss.
-5. **Plotting:** Visualize the training loss over epochs.
-
-~~~
-# Loss function and optimizer
-loss_fn = nn.MSELoss()  # Mean Squared Error loss
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
-
-n_epochs = 100  # Number of epochs to run
-batch_size = 10  # Size of each batch
-batch_start = torch.arange(0, len(X_train), batch_size)
-# Hold the best model
-best_mse = np.inf  # Initialize to infinity
-best_weights = None
-history = []
-
-for epoch in range(n_epochs):
-    model.train()
-    with tqdm(batch_start, unit="batch", mininterval=0, disable=True) as bar:
-        bar.set_description(f"Epoch {epoch}")
-        for start in bar:
-            # Take a batch
-            X_batch = X_train[start:start+batch_size].to(device)
-            y_batch = y_train[start:start+batch_size].to(device)
-            # Forward pass
-            y_pred = model(X_batch)
-            loss = loss_fn(y_pred, y_batch)
-            # Backward pass
-            optimizer.zero_grad()
-            loss.backward()
-            # Update weights
-            optimizer.step()
-            # Print progress
-            bar.set_postfix(mse=float(loss.item()))
-    # Evaluate accuracy at end of each epoch
-    model.eval()
-    with torch.no_grad():
-        y_pred = model(X_test.to(device))
-        mse = loss_fn(y_pred, y_test.to(device))
-        mse = float(mse)
-        history.append(mse)
-        if mse < best_mse:
-            best_mse = mse
-            best_weights = copy.deepcopy(model.state_dict())
-
-# Restore model to best weights and print final accuracy
-model.load_state_dict(best_weights)
-print("MSE: %.2f" % best_mse)
-print("RMSE: %.2f" % np.sqrt(best_mse))
-
-# Plot training history
-plt.plot(history)
-plt.xlabel('Epoch')
-plt.ylabel('MSE')
-plt.title('Training Loss')
-plt.savefig("fig/house_train_loss.png")
+# Add legend and adjust layout
+ax1.legend(fontsize=12)
+ax2.legend(fontsize=12)
+plt.subplots_adjust(left=0.08, right=0.97, top=0.97, bottom=0.08, hspace=0)
+# Save the plot to file with high resolution
+plt.savefig("energy_force_comparison.png", dpi=300)
+# Show the plot
 plt.show()
 ~~~
 {: .python}
-
-![](../fig/house_train_loss.png)
 
 
 > ## Exercise: Training a Neural Network with PyTorch
