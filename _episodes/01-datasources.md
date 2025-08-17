@@ -120,23 +120,23 @@ OMat24 is composed of several subdatasets based on generation method:
 
 #### OMat24 Train Split
 | Sub-dataset | No. structures | File size | Download |
-|------------|---------------|-----------|----------|
+|------------|----------------|-----------|----------|
 | [Full table maintained as in original...] | 
 
 #### OMat24 Val Split
 *Note*: Corrected validation sets were uploaded on 20/12/24 due to duplicated structures.
 
-| Sub-dataset | Size | File Size | Download |
-|------------|------|-----------|----------|
+| Sub-dataset | Size      | File Size | Download |
+|-------------|-----------|-----------|----------|
 | [Full table maintained as in original...] |
 
 #### sAlex Dataset
 A Matbench-Discovery compliant version of Alexandria dataset:
 
-| Dataset | Split | No. Structures | File Size | Download |
-|---------|-------|----------------|-----------|----------|
-| sAlex | train | 10,447,765 | 7.6 GB | [train.tar.gz](...) |
-| sAlex | val | 553,218 | 408 MB | [val.tar.gz](...) |
+| Dataset | Split | No. Structures | File Size | Download          |
+|---------|-------|----------------|-----------|-------------------|
+| sAlex   | train | 10,447,765     | 7.6 GB    | [train.tar.gz](...) |
+| sAlex   | val   | 553,218        | 408 MB    | [val.tar.gz](...)   |
 
 ### Data Access Example
 
