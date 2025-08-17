@@ -789,11 +789,6 @@ In the plotted energy vs. distance graph, you will see a smooth curve starting a
 
 This energy profile validates the dataset by demonstrating the physically meaningful behavior of the system’s interaction potential, which the machine learning model aims to learn and reproduce.
 
-### Training
-
-Here is a clear, concise rewrite of the training section:
-
-***
 
 ### Training
 
