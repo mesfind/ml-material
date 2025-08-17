@@ -1024,6 +1024,7 @@ plt.show()
 >
 > For **non-periodic systems**, the lattice matrix $\mathbf{B}$ is replaced with a large bounding box, and the interaction decays rapidly with distance. DScribe provides **analytical derivatives** of the Sine Matrix with respect to atomic positions, enabling accurate force prediction via backpropagation.
 > ## Solution
+> >
 > ~~~
 > >
 > > # 1. Dataset Generation with Sine Matrix
