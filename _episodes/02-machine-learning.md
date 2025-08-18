@@ -2038,3 +2038,226 @@ plt.plot(targets[500:], preds, "o")
 plt.show()
 ~~~
 {: .python}
+
+## Formation energy with Advanced ML models
+
+The prediction of formation energy in inorganic solids is a critical task in computational materials science, as it serves as a key indicator of thermodynamic stability. In this study, a machine learning (ML) approach is employed to predict the formation energy per atom for a series of garnet-structured materials, leveraging compositional and site-specific elemental features derived from crystal chemistry.
+
+A dataset of experimentally and computationally derived garnet compositions is sourced from a public repository, with formation energies calculated per atom. The crystallographic framework is based on the Y₃Al₅O₁₂ structure, which is used as a template to generate new structures through ionic substitutions at the 12c, 12d, and 8a Wyckoff positions according to the chemical formula A₃C₂D₃O₁₂. Oxidation states are assigned using empirical rules implemented in the `pymatgen` library.
+
+Elemental descriptors—atomic radius and electronegativity—are computed for each cation site using the `DistinctSiteProperty` describer from the MAML (Materials Atomistic Machine Learning) package. These site-resolved features encode local chemical environments and serve as input to the ML models.
+
+Three regression algorithms—Random Forest (RF), XGBoost, and Support Vector Regression (SVR)—are trained on a subset of the data (500 samples) and evaluated on a held-out test set. Model performance is assessed using mean absolute error (MAE) and the coefficient of determination (R²). Predictions are visualized against reference values to assess accuracy and systematic deviations.
+
+This workflow demonstrates the efficacy of data-driven methods in capturing structure-property relationships in complex oxides, enabling rapid screening of novel garnet compositions with minimal computational overhead.
+~~~
+# -*- coding: utf-8 -*-
+"""
+Formation Energy Prediction for Garnet Structures
+Using advanced ML models: Random Forest, XGBoost, SVR
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import warnings
+from typing import Tuple, List
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+from pymatgen.core import Structure
+
+# ML Models
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
+
+# MAML for descriptors and model wrapper
+from maml.describers import DistinctSiteProperty
+from maml.models import SKLModel
+
+# ----------------------------
+# Configuration & Constants
+# ----------------------------
+DATA_URL = "https://raw.githubusercontent.com/mesfind/datasets/master/garnet.csv"
+CIF_URL = "https://raw.githubusercontent.com/mesfind/datasets/master/Y3Al5O12.cif"
+CIF_FILENAME = "Y3Al5O12.cif"
+TARGET_COLUMN = "FormEnergyPerAtom"
+TRAIN_SIZE = 500
+
+# Wyckoff sites and properties
+WYCKOFF_SITES = ["12c", "12d", "8a"]
+ELEMENTAL_PROPERTIES = ["atomic_radius", "X"]  # X = electronegativity
+
+# Site-to-indices mapping in garnet structure
+SITE_INDICES = {
+    "C": range(12),    # 12c
+    "D": range(12, 24), # 12d
+    "A": range(24, 32)  # 8a
+}
+
+# Suppress sklearn feature name warning
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+
+
+# ----------------------------
+# Helper Functions
+# ----------------------------
+def download_file(url: str, filename: str) -> None:
+    """Download file using requests or fallback to wget."""
+    if os.path.exists(filename):
+        print(f"{filename} already exists. Skipping download.")
+        return
+
+    print(f"Downloading {filename}...")
+    try:
+        import requests
+        response = requests.get(url.strip(), timeout=10)
+        response.raise_for_status()
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        print(f"Downloaded {filename} successfully.")
+    except ImportError:
+        # Fallback to wget
+        result = subprocess.run(["wget", url.strip()], capture_output=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to download {filename}: {result.stderr.decode()}")
+        print(f"Downloaded using wget.")
+
+
+def load_dataset(url: str) -> pd.DataFrame:
+    """Load and filter dataset."""
+    df = pd.read_csv(url)
+    df = df[df[TARGET_COLUMN] > -5].copy()
+    print(f"Loaded {len(df)} samples after filtering.")
+    return df
+
+
+def generate_structures(parent_structure: Structure, df: pd.DataFrame) -> Tuple[List[Structure], List[float]]:
+    """Generate structures by substituting ions based on composition."""
+    structures = []
+    targets = []
+
+    for _, row in df.iterrows():
+        struct = parent_structure.copy()
+        for site_label, indices in SITE_INDICES.items():
+            elem = row[site_label.lower()]
+            for idx in indices:
+                struct.replace(idx, elem)
+        structures.append(struct)
+        targets.append(row[TARGET_COLUMN])
+
+    return structures, targets
+
+
+def evaluate_model(y_true: List[float], y_pred: List[float], name: str) -> dict:
+    """Compute and print evaluation metrics."""
+    mae = mean_absolute_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
+    print(f"{name} - MAE: {mae:.4f} eV/atom, R²: {r2:.4f}")
+    return {"MAE": mae, "R²": r2}
+
+
+# ----------------------------
+# Main Execution
+# ----------------------------
+def main():
+    # Ensure plots are displayed (especially in Jupyter or scripts)
+    plt.ion()  # Turn on interactive mode
+    plt.close("all")  # Clear previous figures
+
+    # Step 1: Download CIF
+    download_file(CIF_URL, CIF_FILENAME)
+
+    # Step 2: Load structure
+    parent_structure = Structure.from_file(CIF_FILENAME)
+    parent_structure.add_oxidation_state_by_guess()
+
+    # Step 3: Load dataset
+    df = load_dataset(DATA_URL)
+
+    # Step 4: Generate structures
+    structures, targets = generate_structures(parent_structure, df)
+
+    # Step 5: Set up describer
+    describer = DistinctSiteProperty(wyckoffs=WYCKOFF_SITES, properties=ELEMENTAL_PROPERTIES)
+
+    # Define models
+    models = {
+        "Random Forest": SKLModel(describer=describer, model=RandomForestRegressor(n_estimators=100, random_state=42)),
+        "XGBoost": SKLModel(describer=describer, model=XGBRegressor(n_estimators=100, random_state=42, verbose=False)),
+        "SVR": SKLModel(describer=describer, model=SVR(kernel="rbf", C=10, gamma="scale")),
+    }
+
+    # Prepare test data
+    X_test = structures[TRAIN_SIZE:]
+    y_test = targets[TRAIN_SIZE:]
+
+    # Train and evaluate each model
+    results = {}
+    plt.figure(figsize=(10, 6))
+
+    for name, model in models.items():
+        print(f"\nTraining {name}...")
+        model.train(structures[:TRAIN_SIZE], targets[:TRAIN_SIZE])
+
+        print(f"Predicting with {name}...")
+        preds = model.predict_objs(X_test)
+
+        # Evaluate
+        results[name] = evaluate_model(y_test, preds, name)
+
+        # Scatter plot
+        plt.scatter(y_test, preds, alpha=0.6, label=name, s=50)
+
+    # Finalize plot
+    min_val, max_val = min(y_test), max(y_test)
+    plt.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, label="Ideal")
+    plt.xlabel("True Formation Energy (eV/atom)")
+    plt.ylabel("Predicted Formation Energy (eV/atom)")
+    plt.title("ML Models: Formation Energy Prediction on Garnets")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    # Explicitly display the plot
+    plt.show(block=True)  # Ensures the plot window stays open
+
+    # Print summary
+    print("\nSummary of Results:")
+    for model_name, metrics in results.items():
+        print(f"{model_name}: MAE = {metrics['MAE']:.4f}, R² = {metrics['R²']:.4f}")
+
+
+# ----------------------------
+# Run
+# ----------------------------
+if __name__ == "__main__":
+    main()
+~~~
+{: .python}
+
+~~~
+Training Random Forest...
+Predicting with Random Forest...
+Random Forest - MAE: 0.0507 eV/atom, R²: 0.6413
+
+Training XGBoost...
+Predicting with XGBoost...
+XGBoost - MAE: 0.0506 eV/atom, R²: 0.6357
+
+Training SVR...
+Predicting with SVR...
+SVR - MAE: 0.0650 eV/atom, R²: 0.6101
+
+
+Summary of Results:
+Random Forest: MAE = 0.0507, R² = 0.6413
+XGBoost: MAE = 0.0506, R² = 0.6357
+SVR: MAE = 0.0650, R² = 0.6101
+~~~
+{: .output}
