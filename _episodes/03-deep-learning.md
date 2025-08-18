@@ -1752,7 +1752,261 @@ plt.show()
 {: .output}
 
 
+## Formation Energy with ANN and KFold
 
+This section presents a deep learning approach to predict the formation energy per atom in garnet-structured materials using a robust featurization pipeline based on elemental and compositional descriptors. A diverse set of physicochemical features—such as atomic properties, oxidation states, and electronic characteristics—are extracted using matminer from chemical compositions derived from the A₃C₂D₃O₁₂ garnet formula. An Artificial Neural Network (ANN) is trained and evaluated via 5-fold cross-validation to ensure reliable performance assessment. The model achieves high predictive accuracy, demonstrating the effectiveness of data-driven methods in accelerating materials discovery for complex inorganic oxides.
+
+~~~
+# -*- coding: utf-8 -*-
+"""
+Garnet Formation Energy Prediction
+Fixed for: 'list' object has no attribute 'shape'
+Works with modern matminer, sklearn, pymatgen
+"""
+
+from __future__ import annotations
+
+import warnings
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+# ----------------------------
+# Safe matminer featurizers
+# ----------------------------
+from matminer.featurizers.composition import (
+    ElementProperty,
+    Stoichiometry,
+    OxidationStates,
+    ElectronAffinity,
+    BandCenter,
+    AtomicOrbitals,
+)
+try:
+    from matminer.featurizers.composition import CohesiveEnergy
+    HAS_COHESIVE = True
+except ImportError:
+    HAS_COHESIVE = False
+
+# ML
+from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import KFold
+from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+
+# Pymatgen
+from pymatgen.core import Composition
+
+
+# ----------------------------
+# Configuration
+# ----------------------------
+DATA_URL = "https://raw.githubusercontent.com/mesfind/datasets/master/garnet.csv"
+TARGET_COLUMN = "FormEnergyPerAtom"
+N_SPLITS = 5
+RANDOM_STATE = 42
+
+# Suppress warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+plt.rcParams.update({
+    "figure.figsize": (8, 6),
+    "axes.grid": True,
+    "grid.alpha": 0.3
+})
+
+
+# ----------------------------
+# Load Dataset
+# ----------------------------
+def load_dataset(url: str) -> pd.DataFrame:
+    df = pd.read_csv(url)
+    df = df[df[TARGET_COLUMN] > -5].copy()
+    print(f"📊 Loaded {len(df)} samples after filtering.")
+    return df
+
+
+# ----------------------------
+# Create Formula: A₃C₂D₃O₁₂
+# ----------------------------
+def create_formula(row: pd.Series) -> str:
+    def clean(ion: str) -> str:
+        return ''.join(ch for ch in ion if ch.isalpha())
+    a, c, d = clean(row["a"]), clean(row["c"]), clean(row["d"])
+    return f"{a}3{c}2{d}3O12"
+
+
+# ----------------------------
+# Featurize Safely — Handle list → array conversion
+# ----------------------------
+def featurize_compositions(df: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
+    """Apply featurizers safely, converting list outputs to arrays."""
+    df["formula"] = df.apply(create_formula, axis=1)
+    df["composition"] = df["formula"].apply(Composition)
+
+    featurizers = [
+        Stoichiometry(),
+        ElementProperty.from_preset("magpie"),
+        OxidationStates(),
+        ElectronAffinity(),
+        BandCenter(),
+        AtomicOrbitals(),
+    ]
+    if HAS_COHESIVE:
+        featurizers.append(CohesiveEnergy())
+
+    # Start with empty DataFrame
+    X = pd.DataFrame(index=df.index)
+
+    print("Applying featurizers...")
+    for fz in featurizers:
+        name = fz.__class__.__name__
+        print(f"   {name}")
+        try:
+            # Prepare input as list of compositions
+            input_data = df["composition"].tolist()
+
+            # Fit and transform
+            features = fz.fit_transform(input_data)
+
+            # Fix: Ensure 2D numpy array
+            if isinstance(features, list):
+                features = np.array(features)
+            if features.ndim == 1:
+                features = features.reshape(-1, 1)  # Handle edge case
+
+            # Get feature names
+            try:
+                labels = fz.feature_labels()
+                if len(labels) != features.shape[1]:
+                    labels = [f"{name}_{i}" for i in range(features.shape[1])]
+            except Exception:
+                labels = [f"{name}_{i}" for i in range(features.shape[1])]
+
+            # Convert to DataFrame and concatenate
+            temp_df = pd.DataFrame(features, index=df.index, columns=labels)
+            X = pd.concat([X, temp_df], axis=1)
+
+        except Exception as e:
+            print(f"   Failed {name}: {e}")
+            continue
+
+    # Final cleanup
+    X = X.select_dtypes(include=[np.number]).fillna(0).reset_index(drop=True)
+    y = df[TARGET_COLUMN].values
+
+    if X.shape[1] == 0:
+        raise ValueError(" All featurizers failed. No features generated.")
+
+    print(f"Feature matrix: {X.shape[0]} × {X.shape[1]}")
+    return X, y
+
+
+# ----------------------------
+# ANN with Cross-Validation
+# ----------------------------
+def run_ann_cv(X: pd.DataFrame, y: np.ndarray) -> dict:
+    print("\nStarting 5-fold cross-validation (ANN)...\n")
+
+    kfold = KFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
+    maes, r2s = [], []
+
+    model = Pipeline([
+        ("scaler", StandardScaler()),
+        ("mlp", MLPRegressor(
+            hidden_layer_sizes=(128, 64),
+            activation="relu",
+            solver="adam",
+            alpha=0.01,
+            batch_size=16,
+            max_iter=500,
+            early_stopping=True,
+            validation_fraction=0.1,
+            n_iter_no_change=10,
+            random_state=RANDOM_STATE,
+            verbose=False
+        ))
+    ])
+
+    for i, (train_idx, test_idx) in enumerate(kfold.split(X), 1):
+        X_train = X.iloc[train_idx]
+        X_test = X.iloc[test_idx]
+        y_train = y[train_idx]
+        y_test = y[test_idx]
+
+        try:
+            model.fit(X_train, y_train)
+            pred = model.predict(X_test)
+            mae = mean_absolute_error(y_test, pred)
+            r2 = r2_score(y_test, pred)
+            maes.append(mae)
+            r2s.append(r2)
+            print(f"   Fold {i}: MAE = {mae:.4f}, R² = {r2:.4f}")
+        except Exception as e:
+            print(f"   Fold {i} failed: {e}")
+
+    results = {
+        "ANN": {
+            "MAE_mean": float(np.mean(maes)),
+            "MAE_std": float(np.std(maes)),
+            "R2_mean": float(np.mean(r2s)),
+            "R2_std": float(np.std(r2s)),
+        }
+    }
+
+    print(f"\nANN Performance")
+    print(f"   MAE: {results['ANN']['MAE_mean']:.4f} ± {results['ANN']['MAE_std']:.4f} eV/atom")
+    print(f"   R²:  {results['ANN']['R2_mean']:.4f} ± {results['ANN']['R2_std']:.4f}")
+    return results
+
+
+# ----------------------------
+# Plot Results
+# ----------------------------
+def plot_results(results: dict):
+    plt.figure(figsize=(6, 4))
+    plt.bar(["ANN"], [results["ANN"]["MAE_mean"]],
+            yerr=[results["ANN"]["MAE_std"]], capsize=5, color="#2ca02c", alpha=0.8)
+    plt.ylabel("MAE (eV/atom)")
+    plt.title("Formation Energy Prediction — ANN")
+    plt.tight_layout()
+    plt.show()
+
+
+# ----------------------------
+# Main
+# ----------------------------
+if __name__ == "__main__":
+    print("Garnet Formation Energy Prediction\n")
+
+    # Load data
+    df = load_dataset(DATA_URL)
+
+    # Featurize
+    print("Featurizing compositions...")
+    try:
+        X, y = featurize_compositions(df)
+    except ValueError as e:
+        print(f"Featurization failed: {e}")
+        raise
+
+    # Train and evaluate
+    results = run_ann_cv(X, y)
+
+    # Plot
+    plot_results(results)
+
+    print("\nSuccess! Model trained and evaluated.")
+
+~~~
+{: .python}
+
+~~~
+~~~
+{: .output}
 
 ## Convolutional Neural Networks
 
