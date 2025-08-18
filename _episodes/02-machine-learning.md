@@ -2263,3 +2263,212 @@ SVR: MAE = 0.0650, R² = 0.6101
 {: .output}
 
 Random Forest and XGBoost outperform SVR in predicting formation energies for garnets, with XGBoost achieving the lowest MAE (0.0506 eV/atom). While the models demonstrate reasonable accuracy, there is room for improvement through enhanced descriptors (e.g., bond-valence parameters, tolerance factors, or DFT-derived features) or more sophisticated architectures (e.g., neural networks or graph-based models). Nonetheless, the current workflow enables efficient screening of garnet compositions with modest computational cost, supporting accelerated materials discovery.
+
+### Formation energy with Kfold 
+
+Applying cross-validation (CV) will provide a more robust and statistically reliable estimate of model performance, reducing bias from a single train-test split.
+
+To ensure robust evaluation of the machine learning models, a 5-fold cross-validation strategy was employed. The dataset was partitioned into five stratified folds, ensuring consistent distribution of formation energy values across splits. Each model was trained and evaluated five times, with each fold serving once as the validation set. The performance metrics—mean absolute error (MAE) and coefficient of determination (R²)—were averaged over the five folds to yield a more reliable estimate of generalization error.
+
+This approach mitigates the risk of performance variability due to an arbitrary data split and provides greater confidence in model comparison. The same site-specific elemental descriptors (atomic radius, electronegativity) were used as input features, and the cross-validation was repeated independently for each algorithm: Random Forest (RF), XGBoost, and Support Vector Regression (SVR).
+
+Results indicate that both tree-based ensemble methods outperform SVR, with XGBoost achieving the lowest average MAE and highest R², confirming its effectiveness in capturing non-linear structure–property relationships in garnet systems.
+
+~~~
+# -*- coding: utf-8 -*-
+"""
+Formation Energy Prediction with Manual 5-Fold Cross-Validation
+Avoids SKLModel incompatibility with sklearn's cross_validate
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import warnings
+from typing import List, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from pymatgen.core import Structure
+
+# ML Models
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.model_selection import KFold
+from sklearn.metrics import mean_absolute_error, r2_score
+
+# MAML
+from maml.describers import DistinctSiteProperty
+from maml.models import SKLModel
+
+
+# ----------------------------
+# Configuration
+# ----------------------------
+DATA_URL = "https://raw.githubusercontent.com/mesfind/datasets/master/garnet.csv"
+CIF_URL = "https://raw.githubusercontent.com/mesfind/datasets/master/Y3Al5O12.cif"
+CIF_FILENAME = "Y3Al5O12.cif"
+TARGET_COLUMN = "FormEnergyPerAtom"
+N_SPLITS = 5
+RANDOM_STATE = 42
+
+WYCKOFF_SITES = ["12c", "12d", "8a"]
+ELEMENTAL_PROPERTIES = ["atomic_radius", "X"]
+SITE_INDICES = {
+    "C": range(12),
+    "D": range(12, 24),
+    "A": range(24, 32)
+}
+
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+plt.rcParams["figure.figsize"] = (8, 6)
+
+
+# ----------------------------
+# Helper Functions
+# ----------------------------
+def download_file(url: str, filename: str) -> None:
+    if os.path.exists(filename):
+        print(f"{filename} already exists. Skipping download.")
+        return
+    try:
+        import requests
+        response = requests.get(url.strip(), timeout=10)
+        response.raise_for_status()
+        with open(filename, 'wb') as f:
+            f.write(response.content)
+        print(f"Downloaded {filename} successfully.")
+    except ImportError:
+        subprocess.run(["wget", url.strip()], check=True)
+        print("Downloaded using wget.")
+
+
+def load_dataset(url: str) -> pd.DataFrame:
+    df = pd.read_csv(url)
+    df = df[df[TARGET_COLUMN] > -5].copy()
+    print(f"Loaded {len(df)} samples after filtering.")
+    return df
+
+
+def generate_structures(parent_structure: Structure, df: pd.DataFrame) -> Tuple[List[Structure], List[float]]:
+    structures, targets = [], []
+    for _, row in df.iterrows():
+        struct = parent_structure.copy()
+        for site_label, indices in SITE_INDICES.items():
+            elem = row[site_label.lower()]
+            for idx in indices:
+                struct.replace(idx, elem)
+        structures.append(struct)
+        targets.append(row[TARGET_COLUMN])
+    return structures, targets
+
+
+# ----------------------------
+# Manual Cross-Validation
+# ----------------------------
+def run_manual_cross_validation():
+    # Download and load structure
+    download_file(CIF_URL, CIF_FILENAME)
+    parent_structure = Structure.from_file(CIF_FILENAME)
+    parent_structure.add_oxidation_state_by_guess()
+
+    # Load data and generate structures
+    df = load_dataset(DATA_URL)
+    structures, targets = generate_structures(parent_structure, df)
+
+    # Set up describer
+    describer = DistinctSiteProperty(wyckoffs=WYCKOFF_SITES, properties=ELEMENTAL_PROPERTIES)
+
+    # Define base models
+    models = {
+        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=RANDOM_STATE),
+        "XGBoost": XGBRegressor(n_estimators=100, random_state=RANDOM_STATE, verbose=False),
+        "SVR": SVR(kernel="rbf", C=10, gamma="scale"),
+    }
+
+    # K-Fold splitter
+    kfold = KFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
+    results = {}
+
+    print("Starting manual cross-validation...\n")
+
+    # Convert targets to numpy array for indexing
+    targets_array = np.array(targets)
+
+    for name, base_model in models.items():
+        print(f"Validating {name}...")
+
+        mae_scores = []
+        r2_scores = []
+
+        for fold_idx, (train_idx, test_idx) in enumerate(kfold.split(structures)):
+            # Split structures and targets
+            X_train = [structures[i] for i in train_idx]
+            X_test = [structures[i] for i in test_idx]
+            y_train = targets_array[train_idx]
+            y_test = targets_array[test_idx]
+
+            # Create and train SKLModel
+            model = SKLModel(describer=describer, model=base_model)
+            model.train(X_train, y_train)
+
+            # Predict and evaluate
+            preds = model.predict_objs(X_test)
+            mae = mean_absolute_error(y_test, preds)
+            r2 = r2_score(y_test, preds)
+
+            mae_scores.append(mae)
+            r2_scores.append(r2)
+
+        # Aggregate results
+        mae_mean, mae_std = np.mean(mae_scores), np.std(mae_scores)
+        r2_mean, r2_std = np.mean(r2_scores), np.std(r2_scores)
+
+        results[name] = {
+            "MAE_mean": mae_mean,
+            "MAE_std": mae_std,
+            "R2_mean": r2_mean,
+            "R2_std": r2_std
+        }
+
+        print(f"{name} | MAE: {mae_mean:.4f} ± {mae_std:.4f} eV/atom | "
+              f"R²: {r2_mean:.4f} ± {r2_std:.4f}")
+
+    # Final summary
+    print("\n=== Cross-Validation Summary ===")
+    for model, res in results.items():
+        print(f"{model:12}: MAE = {res['MAE_mean']:.4f}±{res['MAE_std']:.4f}, "
+              f"R² = {res['R2_mean']:.4f}±{res['R2_std']:.4f}")
+
+    return results
+
+
+# ----------------------------
+# Run
+# ----------------------------
+if __name__ == "__main__":
+    cv_results = run_manual_cross_validation()
+~~~
+{: .python}
+
+~~~
+Loaded 704 samples after filtering.
+Starting manual cross-validation...
+
+Validating Random Forest...
+Random Forest | MAE: 0.0164 ± 0.0026 eV/atom | R²: 0.9287 ± 0.0219
+Validating XGBoost...
+
+XGBoost | MAE: 0.0139 ± 0.0033 eV/atom | R²: 0.9226 ± 0.0320
+Validating SVR...
+SVR | MAE: 0.0552 ± 0.0011 eV/atom | R²: 0.7626 ± 0.0202
+
+=== Cross-Validation Summary ===
+Random Forest: MAE = 0.0164±0.0026, R² = 0.9287±0.0219
+XGBoost     : MAE = 0.0139±0.0033, R² = 0.9226±0.0320
+SVR         : MAE = 0.0552±0.0011, R² = 0.7626±0.0202
+~~~
+{: .output}
