@@ -1225,9 +1225,70 @@ df["HOMO_character"] = df["HOMO_character"].map(homo_lomo_mapper)
 df["LUMO_character"] = df["LUMO_character"].map(homo_lomo_mapper)
 df.head()
 ~~~
+{: .python}
+
+~~~
+material_id	formula	num_sites	energy_per_atom	volume	energy_above_hull	total_magnetization	spacegroup_number	crystal_system	gap_expt	composition	HOMO_character	HOMO_element	HOMO_energy	LUMO_character	LUMO_element	LUMO_energy	gap_AO
+0	mp-9900	Ag2GeS3	12	-4.253843	267.880017	0.000000	0.0	36	Orthorhombic	1.98	(Ag, Ge, S)	2	S	-0.261676	2	S	-0.261676	0.000000
+1	mp-1096802	Ag2GeSe3	12	-3.890180	309.160842	0.000986	0.0	36	Orthorhombic	0.90	(Ag, Ge, Se)	2	Se	-0.245806	2	Se	-0.245806	0.000000
+2	mp-23485	Ag2HgI4	7	-2.239734	266.737075	0.000000	0.0	82	Tetragonal	2.47	(Ag, Hg, I)	2	I	-0.267904	1	Hg	-0.205137	0.062767
+3	mp-353	Ag2O	6	-3.860246	107.442223	0.000000	0.0	224	Cubic	1.50	(Ag, O)	3	Ag	-0.298706	1	Ag	-0.157407	0.141299
+4	mp-2018369	Ag2S	12	-17.033431	245.557534	0.000207	0.0	14	Monoclinic	1.23	(Ag, S)	2	S	-0.261676	1	Ag	-0.157407	0.104269
+~~~
 {: .output}
 
+### Augment extra featrues
 
+~~~
+from matminer.utils.data import MagpieData
+desc = ["AtomicWeight", "CovalentRadius"]
+stats = ["mean"]
+dataset = MagpieData()
+ep = ElementProperty(data_source=dataset, features=desc, stats=stats)
+df = ep.featurize_dataframe(df,"composition", ignore_errors=True,
+                                return_errors=False)
+df['vpa'] = np.array(df['volume']/df['num_sites'])
+df.head()
+~~~
+{: .python}
+
+### Drop uncessary features
+
+~~~
+df.dropna(axis=0)
+df = df.drop(columns=['material_id', 'formula','num_sites','volume'])
+df.to_csv("band_gap_preprocessed.csv",index=0)
+~~~
+{: .python}
+
+### Building an ML model
+
+~~~
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+
+# Initialize  the target
+y = df.gap_expt.values
+y = y.astype(np.float32)
+# target variable as 1D float32 array
+y = df.gap_expt.values.astype(np.float32)
+
+# features
+X = df.drop('gap_expt', axis=1)
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, shuffle=True, random_state=0
+)
+
+RF = RandomForestRegressor()
+RF.fit(X_train,y_train)
+y_pred = RF.predict(X_test_scaled)
+mse = mean_squared_error(y_pred, y_test)
+mse
+~~~
+{: .python}
+
+# exercse: retrain the model with normalized X
 ~~~
 # 1. use Standard Scaler to reduce mse
 from sklearn.preprocessing import StandardScaler
@@ -1262,6 +1323,8 @@ mse_scaled = mean_squared_error(y_pred_scaled, y_test)
 mse_scaled
 ~~~
 {: .python}
+
+
 
 
 ~~~
