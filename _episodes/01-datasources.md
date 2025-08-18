@@ -197,6 +197,153 @@ The Open Molecular Crystals 2025 (OMC25) dataset was announced along with UMA, a
 - More details and download information coming soon
 
 
+# Data Agumenation 
+
+~~~
+from mp_api.client import MPRester
+import pandas as pd
+
+api_key = 'your_key'
+
+fields = [
+    "material_id", "formula_pretty", "symmetry",
+    "nsites", "energy_per_atom", "volume",
+    "energy_above_hull", "total_magnetization"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 2],                 
+        energy_above_hull=(0, 0.001),        
+        fields=fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "energy_per_atom": doc.energy_per_atom,
+        "volume": doc.volume,
+        "energy_above_hull": doc.energy_above_hull,
+        "total_magnetization": doc.total_magnetization
+    }
+    if doc.symmetry:
+        row["spacegroup_number"] = doc.symmetry.number
+        row["crystal_system"] = doc.symmetry.crystal_system   # corrected here
+    records.append(row)
+
+df = pd.DataFrame(records)
+
+print("Stable binary compounds count", len(df))
+print(df.head())
+~~~
+{: .python}
+
+
+~~~
+from mp_api.client import MPRester
+import pandas as pd
+from matminer.datasets import load_dataset
+
+api_key = 'your_key
+
+# query stable compounds with nelements = 2,3,4
+fields = [
+    "material_id", "formula_pretty", "symmetry",
+    "nsites", "energy_per_atom", "volume",
+    "energy_above_hull", "total_magnetization"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 4],    # range inclusive [2,4]
+        energy_above_hull=(0, 0.001),
+        fields=fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "energy_per_atom": doc.energy_per_atom,
+        "volume": doc.volume,
+        "energy_above_hull": doc.energy_above_hull,
+        "total_magnetization": doc.total_magnetization
+    }
+    if doc.symmetry:
+        row["spacegroup_number"] = doc.symmetry.number
+        row["crystal_system"] = doc.symmetry.crystal_system
+    records.append(row)
+
+df1 = pd.DataFrame(records)
+print("Stable compounds (2–4 elements)", len(df1))
+print(df1.head())
+
+# ---- experimental band gap datasets ----
+df2 = load_dataset("matbench_expt_gap")
+df2 = df2.rename(columns={"composition": "formula", "gap expt": "gap_expt"})
+df2 = df2[["formula", "gap_expt"]]
+
+df3 = load_dataset("expt_gap")
+df3 = df3.rename(columns={"formula": "formula", "gap expt": "gap_expt"})
+df3 = df3[["formula", "gap_expt"]]
+
+# union of experimental datasets
+df4 = pd.concat([df2, df3], ignore_index=True)
+df4 = df4[df4["gap_expt"] > 0].drop_duplicates("formula")
+print("Experimental band gap entries", len(df4))
+print(df4.head())
+
+# ---- merge DFT structural features with experimental gaps ----
+df = pd.merge(df1, df4, on="formula", how="inner")
+df = df.drop_duplicates("formula", keep="first")
+
+print("Final merged dataset", len(df))
+print(df.head())
+~~~
+{: .python}
+
+
+~~~
+Retrieving SummaryDoc documents: 100%|██████████████████████████████████████████████████████████████████████████████| 33972/33972 [00:14<00:00, 2276.92it/s]
+Stable compounds (2–4 elements) 33972
+  material_id  formula  num_sites  energy_per_atom      volume  energy_above_hull  total_magnetization  spacegroup_number crystal_system
+0  mp-1183076  Ac2AgPb          4       -54.209271  134.563097                0.0             0.910605                225          Cubic
+1  mp-1183086  Ac2CdHg          4       -52.120621  133.072641                0.0             0.628202                225          Cubic
+2   mp-862786  Ac2CuGe          4       -40.884684  113.979079                0.0             0.001071                225          Cubic
+3   mp-861883  Ac2CuIr          4       -50.462576  104.095515                0.0             0.000169                225          Cubic
+4   mp-867241  Ac2GePd          4        -5.176522  114.834178                0.0             0.000001                225          Cubic
+Fetching matbench_expt_gap.json.gz from https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz to /opt/anaconda3/envs/MatML/lib/python3.12/site-packages/matminer/datasets/matbench_expt_gap.json.gz
+Fetching https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz in MB: 0.038911999999999995MB [00:00, 15.19MB/s]                                
+Fetching expt_gap.json.gz from https://ndownloader.figshare.com/files/13464434 to /opt/anaconda3/envs/MatML/lib/python3.12/site-packages/matminer/datasets/expt_gap.json.gz
+Fetching https://ndownloader.figshare.com/files/13464434 in MB: 0.051199999999999996MB [00:00, 30.55MB/s]                                                   
+Experimental band gap entries 3651
+             formula  gap_expt
+2   Ag0.5Ge1Pb1.75S4      1.83
+3  Ag0.5Ge1Pb1.75Se4      1.51
+6            Ag2GeS3      1.98
+7           Ag2GeSe3      0.90
+8            Ag2HgI4      2.47
+Final merged dataset 1050
+  material_id   formula  num_sites  energy_per_atom      volume  energy_above_hull  total_magnetization  spacegroup_number crystal_system  gap_expt
+0     mp-9900   Ag2GeS3         12        -4.253843  267.880017           0.000000                  0.0                 36   Orthorhombic      1.98
+1  mp-1096802  Ag2GeSe3         12        -3.890180  309.160842           0.000986                  0.0                 36   Orthorhombic      0.90
+2    mp-23485   Ag2HgI4          7        -2.239734  266.737075           0.000000                  0.0                 82     Tetragonal      2.47
+3      mp-353      Ag2O          6        -3.860246  107.442223           0.000000                  0.0                224          Cubic      1.50
+4  mp-2018369      Ag2S         12       -17.033431  245.557534           0.000207                  0.0                 14     Monoclinic      1.23
+
+
+~~~
+{.output}
+
+- The first method is based on high-throughput density functional theory (DFT) calculations available through the Materials Project API. In this approach, structural and thermodynamic descriptors such as space group, crystal system, energy per atom, and magnetic properties are queried directly from the database. Filters such as the number of constituent elements and the energy above hull criterion are applied to isolate stable compounds of interest. This yields a large and internally consistent dataset of computationally derived materials attributes.
+
+- The second method integrates experimental reference data from benchmark studies curated in the MatBench and Matminer libraries. Datasets such as matbench_expt_gap and expt_gap contain measured band gaps for crystalline compounds. These records provide experimentally validated values that can be compared with or merged into computational datasets. Merging experimental band gaps with DFT-derived structural features produces a hybrid dataset that combines theoretical descriptors with empirical targets, which is suitable for model development and benchmarking.
+
 
 ## Data Preprocessing in Machine Learning
 
