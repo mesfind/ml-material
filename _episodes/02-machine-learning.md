@@ -1121,3 +1121,246 @@ print("\nDetailed Results:")
 display(results_df)
 ~~~
 {: .python}
+
+
+### adding extra features
+
+~~~
+# ======================
+# IMPORTS
+# ======================
+from mp_api.client import MPRester
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.impute import SimpleImputer  # <-- To handle NaNs
+from pymatgen.core import Composition
+from matminer.featurizers.composition import ElementProperty, OxidationStates, AtomicOrbitals, BandCenter
+import warnings
+
+warnings.filterwarnings("ignore")
+sns.set(style="whitegrid")
+plt.rcParams["figure.figsize"] = (10, 6)
+
+# ======================
+# 1. SET API KEY
+# ======================
+api_key = "FAOXV20YqTT2edzIRotOaC2ayHn10cDT"  # Replace if needed
+
+# ======================
+# 2. FETCH DATA
+# ======================
+print("🔍 Fetching semiconductor materials from Materials Project...")
+valid_fields = [
+    "material_id", "formula_pretty", "nsites", "elements", "density", "volume",
+    "energy_per_atom", "formation_energy_per_atom", "energy_above_hull", "band_gap",
+    "is_gap_direct", "total_magnetization", "bulk_modulus", "shear_modulus",
+    "homogeneous_poisson", "efermi", "universal_anisotropy", "n", "e_total"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 3],
+        energy_above_hull=(0, 0.1),
+        is_metal=False,
+        band_gap=(0.01, None),
+        chunk_size=100,
+        num_chunks=10,
+        fields=valid_fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "num_elements": doc.nelements,
+        "density": doc.density,
+        "volume": doc.volume,
+        "energy_per_atom": doc.energy_per_atom,
+        "formation_energy_per_atom": doc.formation_energy_per_atom,
+        "energy_above_hull": doc.energy_above_hull,
+        "band_gap": doc.band_gap,
+        "is_gap_direct": int(doc.is_gap_direct) if doc.is_gap_direct is not None else 0,
+        "total_magnetization": doc.total_magnetization,
+        "bulk_modulus": doc.bulk_modulus,
+        "shear_modulus": doc.shear_modulus,
+        "poisson_ratio": doc.homogeneous_poisson,
+        "fermi_energy": doc.efermi,
+        "elastic_anisotropy": doc.universal_anisotropy,
+        "refractive_index": doc.n,
+        "dielectric_constant": doc.e_total,
+    }
+    records.append(row)
+
+df_raw = pd.DataFrame(records)
+print(f"✅ Retrieved {len(df_raw)} stable semiconductor materials.")
+
+# ======================
+# 3. FEATURIZE WITH ERROR HANDLING
+# ======================
+print("🧪 Engineering composition-based features...")
+df_raw['composition'] = df_raw['formula'].apply(Composition)
+
+featurizers = [
+    ElementProperty.from_preset("magpie"),
+    OxidationStates(),                    # May fail for some elements
+    AtomicOrbitals(),
+    BandCenter(),
+]
+
+df_featurized = df_raw.copy()
+for fz in featurizers:
+    try:
+        # Add ignore_errors=True to skip problematic entries
+        df_featurized = fz.featurize_dataframe(df_featurized, col_id="composition", ignore_errors=True)
+    except Exception as e:
+        print(f"⚠️ Failed to apply {fz.__class__.__name__}: {e}")
+
+# Keep only numeric columns
+df_final = df_featurized.select_dtypes(include=[np.number])
+
+# Drop rows where band_gap is missing
+df_final = df_final.dropna(subset=['band_gap'])
+
+print(f"✅ Featurized dataset shape: {df_final.shape}")
+
+# ======================
+# 4. SPLIT FEATURES & TARGET
+# ======================
+X = df_final.drop(columns=['band_gap'], errors='ignore')
+y = df_final['band_gap'].values.astype(np.float32)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ======================
+# 5. IMPUTE MISSING VALUES + SCALE
+# ======================
+imputer = SimpleImputer(strategy='mean')  # Replace NaN with column mean
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train_imputed)
+X_test_scaled = scaler.transform(X_test_imputed)
+
+print(f"📊 After imputation: X_train_scaled shape = {X_train_scaled.shape}")
+print(f"🧩 Contains NaN in X_train? {np.isnan(X_train_scaled).any()}")
+print(f"🧩 Contains NaN in X_test?  {np.isnan(X_test_scaled).any()}")
+
+# ======================
+# 6. TRAIN MODELS
+# ======================
+models = {
+    "Random Forest": RandomForestRegressor(n_estimators=200, max_depth=12, random_state=0, n_jobs=-1),
+    "XGBoost": XGBRegressor(n_estimators=200, learning_rate=0.05, max_depth=8, random_state=0),
+    "Gradient Boosting": GradientBoostingRegressor(n_estimators=200, max_depth=6, random_state=0)
+}
+
+results = {"Model": [], "MSE": [], "RMSE": [], "MAE": [], "R2": []}
+best_predictions = {}
+
+print("\n🚀 Training models...")
+for name, model in models.items():
+    print(f"  → Training {name}...")
+    model.fit(X_train_scaled, y_train)
+    y_pred = model.predict(X_test_scaled)
+    best_predictions[name] = y_pred
+
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    results["Model"].append(name)
+    results["MSE"].append(mse)
+    results["RMSE"].append(rmse)
+    results["MAE"].append(mae)
+    results["R2"].append(r2)
+
+# ======================
+# 7. DISPLAY RESULTS
+# ======================
+results_df = pd.DataFrame(results)
+print("\n" + "="*60)
+print("        MODEL PERFORMANCE ON BAND GAP PREDICTION")
+print("="*60)
+print(results_df.to_string(index=False))
+print("="*60)
+
+best_model = results_df.loc[results_df['R2'].idxmax()]
+print(f"\n🎉 Best Model: {best_model['Model']} | R² = {best_model['R2']:.4f} | RMSE = {best_model['RMSE']:.4f}")
+
+# ======================
+# 8. PLOTS
+# ======================
+# True vs Predicted
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+for i, (name, y_pred) in enumerate(best_predictions.items()):
+    ax = axes[i]
+    ax.scatter(y_test, y_pred, alpha=0.6, color='dodgerblue', edgecolor='k')
+    ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+    ax.set_xlabel("True (eV)")
+    ax.set_ylabel("Predicted (eV)")
+    ax.set_title(name)
+    ax.grid(True, alpha=0.3)
+plt.suptitle("True vs Predicted Band Gap")
+plt.tight_layout()
+plt.show()
+
+# Feature Importance (XGBoost)
+xgb_model = models["XGBoost"]
+importances = xgb_model.feature_importances_
+feature_names = X.columns
+indices = np.argsort(importances)[::-1][:15]
+
+plt.figure(figsize=(12, 6))
+plt.title("Top 15 Feature Importances (XGBoost)")
+plt.bar(range(15), importances[indices], color='skyblue', edgecolor='k')
+plt.xticks(range(15), [feature_names[i] for i in indices], rotation=60, ha='right')
+for i, val in enumerate(importances[indices]):
+    plt.text(i, val + importances[indices].max()*0.01, f'{val:.3f}', ha='center', va='bottom', fontsize=8)
+plt.ylabel("Importance")
+plt.tight_layout()
+plt.show()
+~~~
+{: .python}
+
+~~~
+🔍 Fetching semiconductor materials from Materials Project...
+Retrieving SummaryDoc documents: 100%|██████████| 1000/1000 [00:04<00:00, 209.81it/s]
+✅ Retrieved 1000 stable semiconductor materials.
+🧪 Engineering composition-based features...
+ElementProperty: 100%|██████████| 1000/1000 [00:18<00:00, 53.52it/s]
+OxidationStates: 100%|██████████| 1000/1000 [00:11<00:00, 90.23it/s] 
+AtomicOrbitals: 100%|██████████| 1000/1000 [00:10<00:00, 93.20it/s] 
+BandCenter: 100%|██████████| 1000/1000 [00:19<00:00, 52.09it/s]
+✅ Featurized dataset shape: (1000, 154)
+📊 After imputation: X_train_scaled shape = (800, 149)
+🧩 Contains NaN in X_train? False
+🧩 Contains NaN in X_test?  False
+
+🚀 Training models...
+  → Training Random Forest...
+  → Training XGBoost...
+  → Training Gradient Boosting...
+
+============================================================
+        MODEL PERFORMANCE ON BAND GAP PREDICTION
+============================================================
+            Model      MSE     RMSE      MAE       R2
+    Random Forest 0.489572 0.699694 0.450223 0.857944
+          XGBoost 0.482173 0.694387 0.465862 0.860091
+Gradient Boosting 0.437625 0.661533 0.422993 0.873017
+============================================================
+🎉 Best Model: Gradient Boosting | R² = 0.8730 | RMSE = 0.6615
+
+~~~
+{: .output}
