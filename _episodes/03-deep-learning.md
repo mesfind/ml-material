@@ -1507,155 +1507,251 @@ Accuracy: 0.9969
 ~~~
 {: .output}
 
-> ## Exercise 1: Training and Evaluating an ANN Classifier
->
-> In this exercise, we will enhance the neural network training process with PyTorch by implementing the following steps:
->
-> 1. Train an ANN model using PyTorch on a wine quality dataset.
-> 2. Evaluate the model using classification metrics.
-> 3. Plot the confusion matrix to visualize the performance of the classifier.
->
-> > ## Solution
-> > 
-> > ~~~
-> > from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
-> > input_size = X_train.shape[1]
-> > hidden_size = 64
-> > output_size = 1
-> > model = ANN(input_size, hidden_size, output_size)
-> > 
-> > # Move the model to the available device
-> > device = torch.device("cuda:0" if torch.cuda.is_available() else "mps:0" if torch.backends.mps.is_available() else "cpu")
-> > model.to(device)
-> > # Move the tensors to the device
-> > X_train, y_train = X_train.to(device), y_train.to(device)
-> > X_test, y_test = X_test.to(device), y_test.to(device)
-> > 
-> > # Define the loss function and optimizer
-> > criterion = nn.BCELoss()
-> > optimizer = optim.Adam(model.parameters(), lr=0.001)
-> > # Convert data into PyTorch datasets and dataloaders
-> > train_dataset = TensorDataset(X_train, y_train)
-> > train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-> > 
-> > # Train the model
-> > num_epochs = 100
-> > for epoch in range(num_epochs):
-> >     model.train()  # Set the model to training mode
-> >     for inputs, targets in train_loader:
-> >        inputs, targets = inputs.to(device), targets.to(device)
-> >         outputs = model(inputs)
-> >         loss = criterion(outputs, targets)
-> >         optimizer.zero_grad()
-> >         loss.backward()
-> >         optimizer.step()
-> > 
-> >     if (epoch + 1) % 10 == 0:
-> >         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
-> > # Evaluation
-> > model.eval()  # Set the model to evaluation mode
-> > with torch.no_grad():
-> >     predY = model(X_test)
-> >     predY = np.round(predY.cpu().numpy()).astype(int).reshape(-1)  # Ensure predictions are integers
-> > # Calculate classification metrics
-> > accuracy = np.mean(predY == testY.reshape(-1))
-> > conf_matrix = confusion_matrix(testY, predY)
-> > class_report = classification_report(testY, predY, target_names=le.classes_)
-> > print(f'Accuracy: {accuracy:.4f}')
-> > print('Confusion Matrix:')
-> > print(conf_matrix)
-> > print('\nClassification Report:')
-> > print(class_report)
-> > # Plot the confusion matrix
-> > disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=le.classes_)
-> > disp.plot(cmap=plt.cm.Blues)
-> > plt.title('Confusion Matrix')
-> > plt.savefig("fig/wine_quality_confusion_matrix.png")
-> > plt.show()
-> > ~~~
-> > {: .python}
-> > ![](../fig/wine_quality_confusion_matrix.png)
-> {: .solution}
-{: .challenge}
-
-
-The ROC curve provides a visual representation of a model's performance across different thresholds, and the AUC quantifies this performance into a single value for easier comparison.
-
-### ROC Curve
-- **ROC Curve (Receiver Operating Characteristic Curve)**: A graphical plot used to evaluate the performance of a binary classification model.
-- **Axes**: 
-  - **X-axis (False Positive Rate, FPR)**: The proportion of negative instances incorrectly classified as positive (calculated as \\( \text{FPR} = \frac{\text{False Positives}}{\text{False Positives} + \text{True Negatives}} \\)).
-  - **Y-axis (True Positive Rate, TPR)**: The proportion of positive instances correctly classified (calculated as \\( \text{TPR} = \frac{\text{True Positives}}{\text{True Positives} + \text{False Negatives}} \\)).
-- **Purpose**: The ROC curve shows the trade-off between TPR and FPR at different classification thresholds. 
-
-### AUC
-- **AUC (Area Under the Curve)**: A single scalar value that summarizes the performance of the model by measuring the entire two-dimensional area underneath the ROC curve.
-- **Range**: 0 to 1.
-  - **AUC = 1**: Perfect model.
-  - **AUC = 0.5**: Model with no discriminative power (random guessing).
-  - **AUC < 0.5**: Model performing worse than random guessing.
-- **Purpose**: A higher AUC indicates a better performing model, as it reflects higher TPRs at lower FPRs across all possible thresholds.
-
-
-> ## Exercise 2: Evaluating Model Performance with ROC Curve
-> In this exercise, you will evaluate the performance of the trained ANN model using an ROC curve.
-> 
-> 1. Plot the ROC curve for the MLP classifier.
-> 2. Calculate the area under the ROC curve (AUC) to quantify the model's performance.
->
-> > ## Solution
-> > 
-> > ~~~
-> > from sklearn.metrics import roc_auc_score, roc_curve
-> > import matplotlib.pyplot as plt
-> > import torch
-> > # Calculate predicted probabilities using sigmoid activation
-> > 
-> > # Calculate predicted probabilities using sigmoid activation
-> > with torch.no_grad():
-> >     ypred_proba = torch.sigmoid(model(X_test)).cpu().numpy()
-> > 
-> > # Calculate ROC AUC score
-> > roc_auc = roc_auc_score(testY, ypred_proba)
-> > 
-> > # Compute ROC curve
-> > fpr, tpr, _ = roc_curve(testY, ypred_proba)
-> > 
-> > # Plot ROC curve in a single figure
-> > plt.figure(figsize=(8, 6))
-> > 
-> > # Plot ROC curve
-> > plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
-> > plt.plot([0, 1], [0, 1], color='red', lw=2, linestyle='--')
-> > plt.xlim([0.0, 1.0])
-> > plt.ylim([0.0, 1.05])
-> > plt.xlabel('False Positive Rate')
-> > plt.ylabel('True Positive Rate')
-> > plt.title('Receiver Operating Characteristic (ROC) Curve')
-> > plt.legend(loc='lower right')
-> > plt.grid(True)
-> > plt.tight_layout()  # Tighten layout to prevent overlap
-> > plt.savefig("fig/wine_quality_roc_auc.png")
-> > plt.show()
-> > ~~~
-> > {: .python}
-> > ![](../fig/wine_quality_roc_auc.png)
-> {: .solution}
-{: .challenge}
-
-
-Training a good model can take a lot of time. And I mean weeks, months or even years. So, let’s make sure that you know how you can save your precious work. Saving is easy:
+### Formation Energy
 
 ~~~
-# save the trained model
-model_path = 'model.pth'
-torch.save(model, model_path)
+# ==============
+# IMPORTS
+# ==============
+from mp_api.client import MPRester
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pymatgen.core import Structure
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.impute import SimpleImputer
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
 
-# Restoring your model is easy too
+from dscribe.descriptors import SOAP
 
-mpl_model = torch.load(model_path)
+import warnings
+warnings.filterwarnings("ignore")
+sns.set(style="whitegrid")
+plt.rcParams["figure.figsize"] = (10, 6)
+
+# ==============
+# SAFE R2 SCORE FUNCTION
+# ==============
+def safe_r2_score(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    if len(y_true) != len(y_pred):
+        raise ValueError("Inputs must have same length")
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    if np.isclose(ss_tot,0): 
+        return 1.0 if np.isclose(ss_res,0) else 0.0
+    return 1 - ss_res/ss_tot
+
+# ===========
+# 1. SET API KEY
+# ===========
+api_key = "FAOXV20YqTT2edzIRotOaC2ayHn10cDT"
+
+# ===========
+# 2. FETCH DATA (Summary + Structures Separately)
+# ===========
+print("🔍 Fetching formation energy and structures from Materials Project...")
+
+with MPRester(api_key) as mpr:
+    summary_docs = mpr.materials.summary.search(
+        nelements=[2,5],
+        energy_above_hull=(0, 0.1),
+        fields=["material_id", "formula_pretty", "formation_energy_per_atom"]
+    )
+
+    records = []
+    for doc in summary_docs:
+        struct = mpr.get_structure_by_material_id(doc.material_id)
+        if struct is None or doc.formation_energy_per_atom is None:
+            continue
+        records.append({
+            "material_id": doc.material_id,
+            "formula": doc.formula_pretty,
+            "formation_energy_per_atom": doc.formation_energy_per_atom,
+            "structure": struct
+        })
+
+df = pd.DataFrame(records)
+#print(f"✅ Retrieved {len(df)} materials with structures and formation energies.")
+
+# ===========
+# 3. DSCRIBE SOAP FEATURIZATION
+# ===========
+print("🧪 Computing SOAP descriptors...")
+
+soap = SOAP(
+    species=None,  # Let DScribe infer species from structures automatically
+    rcut=5.0,
+    nmax=8,
+    lmax=6,
+    periodic=True,
+    average="outer",
+    sparse=False,
+)
+
+X_soap = []
+for s in df['structure']:
+    desc = soap.create(s)
+    X_soap.append(desc)
+
+X_soap = np.array(X_soap)
+print(f"SOAP descriptor matrix shape: {X_soap.shape}")
+
+# ===========
+# 4. SPLIT FEATURES AND TARGET
+# ===========
+y = df['formation_energy_per_atom'].values.astype(np.float32)
+X_train, X_test, y_train, y_test = train_test_split(X_soap, y, test_size=0.2, random_state=42)
+
+# ===========
+# 5. IMPUTE AND SCALE
+# ===========
+imputer = SimpleImputer(strategy='mean')
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+
+scaler_X = StandardScaler()
+X_train_scaled = scaler_X.fit_transform(X_train_imputed)
+X_test_scaled = scaler_X.transform(X_test_imputed)
+
+scaler_y = StandardScaler()
+y_train_scaled = scaler_y.fit_transform(y_train.reshape(-1, 1)).flatten()
+y_test_scaled = scaler_y.transform(y_test.reshape(-1, 1)).flatten()
+
+# ===========
+# 6. ANN MODEL DEFINITION
+# ===========
+class FormationEnergyPredictor(nn.Module):
+    def __init__(self, input_size):
+        super(FormationEnergyPredictor, self).__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_size, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+        )
+    def forward(self, x):
+        return self.model(x)
+
+# ===========
+# 7. TRAINING FUNCTION
+# ===========
+def train_ann(X_train, y_train, X_val, y_val, n_epochs=100, batch_size=32):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    X_train_t = torch.tensor(X_train, dtype=torch.float32).to(device)
+    y_train_t = torch.tensor(y_train, dtype=torch.float32).view(-1, 1).to(device)
+    X_val_t = torch.tensor(X_val, dtype=torch.float32).to(device)
+    y_val_t = torch.tensor(y_val, dtype=torch.float32).view(-1, 1).to(device)
+
+    train_loader = DataLoader(TensorDataset(X_train_t, y_train_t), batch_size=batch_size, shuffle=True)
+    model = FormationEnergyPredictor(X_train.shape[1]).to(device)
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5)
+
+    best_val_loss = float('inf')
+    best_model_state = model.state_dict()
+    patience_counter = 0
+
+    for epoch in range(n_epochs):
+        model.train()
+        epoch_loss = 0.0
+        for xb, yb in train_loader:
+            optimizer.zero_grad()
+            pred = model(xb)
+            loss = criterion(pred, yb)
+            if torch.isnan(loss):
+                print(f"NaN loss at epoch {epoch+1}, skipping batch")
+                continue
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+            epoch_loss += loss.item() * xb.size(0)
+        epoch_loss /= len(train_loader.dataset)
+
+        model.eval()
+        with torch.no_grad():
+            val_pred = model(X_val_t)
+            val_loss = criterion(val_pred, y_val_t).item()
+
+        scheduler.step(val_loss)
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_model_state = model.state_dict()
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            if patience_counter >= 10:
+                print(f"Early stopping at epoch {epoch+1}")
+                break
+
+    model.load_state_dict(best_model_state)
+    model.eval()
+    return model
+
+# ===========
+# 8. TRAIN AND EVALUATE
+# ===========
+print("\n🚀 Training the formation energy prediction model...")
+
+X_train_final, X_val, y_train_final, y_val = train_test_split(
+    X_train_scaled, y_train_scaled, test_size=0.1, random_state=42
+)
+
+model = train_ann(X_train_final, y_train_final, X_val, y_val, n_epochs=150)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+model.eval()
+
+X_test_t = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+with torch.no_grad():
+    y_pred_scaled = model(X_test_t).cpu().numpy().flatten()
+
+y_pred = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).flatten()
+
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+mae = mean_absolute_error(y_test, y_pred)
+r2 = safe_r2_score(y_test, y_pred)
+
+print(f"\nTest MSE: {mse:.4f}")
+print(f"Test RMSE: {rmse:.4f}")
+print(f"Test MAE: {mae:.4f}")
+print(f"Test R2: {r2:.4f}")
+
+plt.figure(figsize=(8, 6))
+plt.scatter(y_test, y_pred, alpha=0.7, color='dodgerblue', edgecolor='k', s=60)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal')
+plt.xlabel("True Formation Energy (eV/atom)")
+plt.ylabel("Predicted Formation Energy (eV/atom)")
+plt.title("True vs Predicted Formation Energy")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 ~~~
 {: .python}
+
+~~~
+~~~
+{: .output}
+
+
 
 
 ## Convolutional Neural Networks
