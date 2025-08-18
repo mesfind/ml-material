@@ -241,6 +241,101 @@ Final merged dataset 1050
 
 - The second method integrates experimental reference data from benchmark studies curated in the MatBench and Matminer libraries. Datasets such as matbench_expt_gap and expt_gap contain measured band gaps for crystalline compounds. These records provide experimentally validated values that can be compared with or merged into computational datasets. Merging experimental band gaps with DFT-derived structural features produces a hybrid dataset that combines theoretical descriptors with empirical targets, which is suitable for model development and benchmarking.
 
+### Preprocessing string variables 
+
+~~~
+from mp_api.client import MPRester
+import pandas as pd
+from matminer.datasets import load_dataset
+import numpy as np
+api_key = 'your_key'
+
+# query stable compounds with nelements = 2,3,4
+fields = [
+    "material_id", "formula_pretty", "symmetry",
+    "nsites", "energy_per_atom", "volume",
+    "energy_above_hull", "total_magnetization"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 4],    # range inclusive [2,4]
+        energy_above_hull=(0, 0.001),
+        fields=fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "energy_per_atom": doc.energy_per_atom,
+        "volume": doc.volume,
+        "energy_above_hull": doc.energy_above_hull,
+        "total_magnetization": doc.total_magnetization
+    }
+    if doc.symmetry:
+        row["spacegroup_number"] = doc.symmetry.number
+        row["crystal_system"] = doc.symmetry.crystal_system
+    records.append(row)
+
+df1 = pd.DataFrame(records)
+print("Stable compounds (2–4 elements)", len(df1))
+
+
+# ---- experimental band gap datasets ----
+df2 = load_dataset("matbench_expt_gap")
+df2 = df2.rename(columns={"composition": "formula", "gap expt": "gap_expt"})
+df2 = df2[["formula", "gap_expt"]]
+
+df3 = load_dataset("expt_gap")
+df3 = df3.rename(columns={"formula": "formula", "gap expt": "gap_expt"})
+df3 = df3[["formula", "gap_expt"]]
+
+# union of experimental datasets
+df4 = pd.concat([df2, df3], ignore_index=True)
+df4 = df4[df4["gap_expt"] > 0].drop_duplicates("formula")
+print("Experimental band gap entries", len(df4))
+
+
+# ---- merge DFT structural features with experimental gaps ----
+df = pd.merge(df1, df4, on="formula", how="inner")
+df = df.drop_duplicates("formula", keep="first")
+
+print("Final merged dataset", len(df))
+
+# convert to string and lowercase, keep NaN as is
+df["crystal_system"] = df["crystal_system"].astype(str).str.strip().str.lower()
+df.loc[df["crystal_system"] == "none", "crystal_system"] = np.nan
+
+# define consistent mapping
+scale_mapper = {
+    "triclinic": 1,
+    "monoclinic": 2,
+    "orthorhombic": 3,
+    "tetragonal": 4,
+    "trigonal": 5,
+    "hexagonal": 6,
+    "cubic": 7
+}
+
+# map to numeric, keep NaN for unknowns
+df["crystal_system"] = df["crystal_system"].map(scale_mapper)
+
+df.head()
+~~~
+{: .python}
+
+~~~
+  material_id   formula  num_sites  energy_per_atom      volume  energy_above_hull  total_magnetization  spacegroup_number  crystal_system  gap_expt
+0     mp-9900   Ag2GeS3         12        -4.253843  267.880017           0.000000                  0.0                 36               3      1.98
+1  mp-1096802  Ag2GeSe3         12        -3.890180  309.160842           0.000986                  0.0                 36               3      0.90
+2    mp-23485   Ag2HgI4          7        -2.239734  266.737075           0.000000                  0.0                 82               4      2.47
+3      mp-353      Ag2O          6        -3.860246  107.442223           0.000000                  0.0                224               7      1.50
+4  mp-2018369      Ag2S         12       -17.033431  245.557534           0.000207                  0.0                 14               2      1.23
+~~~
+{: .output}
 
 
 ## 3) matminer dataset
