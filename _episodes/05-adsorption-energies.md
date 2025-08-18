@@ -47,10 +47,10 @@ Before we begin, we need to install the required packages and gain access to the
 
 First, install the core packages from the FairChem suite
 
-```{python}
-# :tags: [skip-execution]
+~~~
 ! pip install fairchem-core fairchem-data-oc fairchem-applications-cattsunami
-```
+~~~
+{: .python}
 
 Next, request access to the UMA model
 
@@ -61,7 +61,7 @@ Next, request access to the UMA model
 
 You can authenticate using the CLI or by setting an environment variable
 
-```{python}
+~~~
 # :tags: [skip-execution]
 # Option 1: CLI login
 ! huggingface-cli login
@@ -69,17 +69,19 @@ You can authenticate using the CLI or by setting an environment variable
 # Option 2: Set token in environment
 import os
 os.environ["HF_TOKEN"] = "your_hf_token_here"
-```
+~~~
+{: .python}
 
 Once authenticated, load the UMA-S-1 model for the OC20 total energy task
 
-```{python}
+~~~
 from __future__ import annotations
 from fairchem.core import FAIRChemCalculator, pretrained_mlip
 
 predictor = pretrained_mlip.get_predict_unit("uma-s-1")
 calc = FAIRChemCalculator(predictor, task_name="oc20")
-```
+~~~
+{: .python}
 
 This model predicts **RPBE-level total energies**, allowing us to compute adsorption energies using thermodynamic cycles.
 
@@ -89,7 +91,7 @@ This model predicts **RPBE-level total energies**, allowing us to compute adsorp
 
 We begin by constructing a Pt(111) surface and placing an oxygen atom in the fcc hollow site. We use the experimental lattice constant by default, though you can substitute a DFT-optimized value if preferred.
 
-```{python}
+~~~
 from ase.build import add_adsorbate, fcc111
 from ase.optimize import BFGS
 
@@ -98,11 +100,13 @@ slab.pbc = True
 
 adslab = slab.copy()
 add_adsorbate(adslab, "O", height=1.2, position="fcc")
-```
+~~~
+{: .python}
+
 
 We now relax both the clean slab and the adsorbed system using the BFGS optimizer
 
-```{python}
+~~~
 slab.set_calculator(calc)
 opt = BFGS(slab)
 opt.run(fmax=0.05, steps=100)
@@ -112,7 +116,8 @@ adslab.set_calculator(calc)
 opt = BFGS(adslab)
 opt.run(fmax=0.05, steps=100)
 adslab_e = adslab.get_potential_energy()
-```
+~~~
+{: .python}
 
 To compute the adsorption energy, we must define a reference state for atomic oxygen. DFT performs poorly on gas-phase O₂, so we use a thermochemical cycle based on water formation
 
@@ -128,18 +133,19 @@ $$
 
 We also use atomic reference energies from the OC20 dataset
 
-```{python}
+~~~
 atomic_reference_energies = {
     "H": -3.477,
     "N": -8.083,
     "O": -7.204,
     "C": -7.282
 }
-```
+~~~
+{: .python}
 
 The adsorption energy is then
 
-```{python}
+~~~
 re1 = -3.03
 re3 = -2.58
 
@@ -148,11 +154,12 @@ adsorption_energy = (adslab_e - slab_e
                      + re1 + re3)
 
 print(f"Adsorption energy of O on Pt(111): {adsorption_energy:.3f} eV")
-```
+~~~
+{: .python}
 
 This gives a value of approximately -1.47 eV.
 
----
+
 
 ## Comparison with Literature
 
@@ -166,13 +173,12 @@ Our ML prediction is about 0.21 eV higher. This difference is expected and prima
 
 These systematic shifts are common and can be corrected with a small set of DFT calculations if needed.
 
----
 
 ## Visualizing the Structures
 
 It is good practice to inspect the relaxed geometries
 
-```{python}
+~~~
 import matplotlib.pyplot as plt
 from ase.visualize.plot import plot_atoms
 
@@ -185,9 +191,8 @@ for ax in axs:
     ax.set_axis_off()
 plt.tight_layout()
 plt.show()
-```
-
----
+~~~
+{: .python}
 
 ## Trends Across Late Transition Metals
 
@@ -195,18 +200,19 @@ We now extend our analysis to a set of late transition metals: Cu, Ag, Pd, Pt, R
 
 Load the reference data
 
-```{python}
+~~~
 import json
 
 with open("energies.json") as f:
     edata = json.load(f)
 with open("structures.json") as f:
     sdata = json.load(f)
-```
+~~~
+{: .python}
 
 For each metal and site, we reconstruct the structure, relax it using UMA, and compute the adsorption energy
 
-```{python}
+~~~
 data = {"fcc": [], "hcp": []}
 refdata = {"fcc": [], "hcp": []}
 
@@ -228,11 +234,12 @@ for metal in ["Cu", "Ag", "Pd", "Pt", "Rh", "Ir"]:
 
         data[site].append(energy)
         refdata[site].append(edata[metal]["O"][site]["0.25"])
-```
+~~~
+{: .python}
 
 Plot the results against DFT values
 
-```{python}
+~~~
 plt.figure(figsize=(6, 6))
 plt.plot(refdata["fcc"], data["fcc"], "r.", label="fcc", ms=10)
 plt.plot(refdata["hcp"], data["hcp"], "b.", label="hcp", ms=10)
@@ -244,11 +251,12 @@ plt.title("O Adsorption Energy: DFT vs ML")
 plt.axis("equal")
 plt.grid(True, alpha=0.3)
 plt.show()
-```
+~~~
+{: .python}
 
 The model captures the trend well, with a systematic offset due to the XC functional difference.
 
----
+
 
 ## Convergence Study
 
@@ -256,7 +264,7 @@ The model captures the trend well, with a systematic offset due to the XC functi
 
 We test convergence with respect to the number of layers in the Pt(111) slab
 
-```{python}
+~~~
 for nlayers in [3, 4, 5, 6, 7, 8]:
     slab = fcc111("Pt", size=(2, 2, nlayers), vacuum=10.0)
     slab.pbc = True
@@ -272,7 +280,8 @@ for nlayers in [3, 4, 5, 6, 7, 8]:
 
     energy = adslab_e - slab_e - atomic_reference_energies["O"] + re1
     print(f"nlayers = {nlayers}: {energy:.2f} eV")
-```
+~~~
+{: .python}
 
 The energy converges to within 0.02 eV by 5–6 layers.
 
@@ -280,7 +289,7 @@ The energy converges to within 0.02 eV by 5–6 layers.
 
 We also test the effect of lateral coverage using larger unit cells
 
-```{python}
+~~~
 for size in [1, 2, 3, 4, 5]:
     slab = fcc111("Pt", size=(size, size, 5), vacuum=10.0)
     slab.set_calculator(calc)
@@ -295,11 +304,12 @@ for size in [1, 2, 3, 4, 5]:
 
     energy = adslab_e - slab_e - atomic_reference_energies["O"] + re1
     print(f"({size}x{size}): {energy:.2f} eV")
-```
+~~~
+{: .python}
 
 Adsorption energies become less favorable at lower coverage, which may indicate the need for fine-tuning at low coverages.
 
----
+
 
 ## Summary
 
@@ -313,7 +323,7 @@ This tutorial demonstrated how to use the UMA model and OC22 dataset to compute 
 
 The OC22 dataset and FairChem tools provide a powerful foundation for accelerating catalyst discovery.
 
----
+
 
 ## Exercises
 
@@ -322,7 +332,7 @@ The OC22 dataset and FairChem tools provide a powerful foundation for accelerati
 3. Try different metals not in the original dataset, such as Ni or Co
 4. Fine-tune UMA on a small DFT dataset to reduce the systematic error
 
----
+
 
 ## References
 
@@ -330,7 +340,7 @@ Shuaibi M, Liu Z, Goyal P, et al. The Open Catalyst 2022 (OC22) Dataset and Chal
 Xu Z, Kitchin JR. Probing the Coverage Dependence of Site and Adsorbate Configurational Correlations on (111) Surfaces of Late Transition Metals. *J. Phys. Chem. C*. 2014;118(44):25597–25602.  
 Hjorth Larsen A, et al. The atomic simulation environment—a Python library for working with atoms. *J. Phys.: Condens. Matter*. 2017;29(27):273002.
 
----
+
 
 ## Acknowledgments
 
