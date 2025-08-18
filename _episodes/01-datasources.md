@@ -14,7 +14,7 @@ objectives:
 keypoints:
 - "Essential libraries for accessing online data sources"
 - "Data retrieval from the Materials Project API"
-- "Working with netCDF, GRIB, and LMDB data formats"
+- "Working with data augmenatation from multiple sources"
 ---
 
 # Materials Data Sources
