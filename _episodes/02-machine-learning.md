@@ -2261,3 +2261,5 @@ XGBoost: MAE = 0.0506, R² = 0.6357
 SVR: MAE = 0.0650, R² = 0.6101
 ~~~
 {: .output}
+
+Random Forest and XGBoost outperform SVR in predicting formation energies for garnets, with XGBoost achieving the lowest MAE (0.0506 eV/atom). While the models demonstrate reasonable accuracy, there is room for improvement through enhanced descriptors (e.g., bond-valence parameters, tolerance factors, or DFT-derived features) or more sophisticated architectures (e.g., neural networks or graph-based models). Nonetheless, the current workflow enables efficient screening of garnet compositions with modest computational cost, supporting accelerated materials discovery.
