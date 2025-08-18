@@ -1288,41 +1288,332 @@ mse
 ~~~
 {: .python}
 
-# exercse: retrain the model with normalized X
-~~~
-# 1. use Standard Scaler to reduce mse
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+> ## Exercise 1: Retrain the Model with Normalized Features Using StandardScaler
+>
+> Feature scaling is a crucial preprocessing step in machine learning, especially for algorithms sensitive to the magnitude of input features. Although tree-based models like Random Forest are generally robust to feature scales, standardizing the input can still improve numerical stability and help in fair comparison across features. In this exercise, you will:
+>
+> 1. Extract the target variable `gap_expt` and ensure it is in the correct format.
+> 2. Prepare the feature matrix by dropping the target column.
+> 3. Split the data into training and test sets (80/20).
+> 4. Apply `StandardScaler` to normalize the features — fitting only on the training set.
+> 5. Retrain a `RandomForestRegressor` on the scaled features.
+> 6. Evaluate the model using Mean Squared Error (MSE) on the test set.
+>
+> This exercise emphasizes proper **data preprocessing** and reinforces best practices in avoiding data leakage during scaling.
+> 
+> > ## Solution
+> >
+> > ~~~
+> > # 1. Use StandardScaler to reduce MSE
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> > from sklearn.ensemble import RandomForestRegressor
+> > from sklearn.metrics import mean_squared_error
+> > import numpy as np
+> >
+> > # Initialize the target
+> > y = df.gap_expt.values
+> > y = y.astype(np.float32)
+> >
+> > # Features
+> > X = df.drop('gap_expt', axis=1)
+> >
+> > # Split data
+> > X_train, X_test, y_train, y_test = train_test_split(
+> >     X, y, test_size=0.2, shuffle=True, random_state=0
+> > )
+> >
+> > # Initialize scaler
+> > scaler = StandardScaler()
+> >
+> > # Fit scaler on training features and transform training data
+> > X_train_scaled = scaler.fit_transform(X_train)
+> >
+> > # Transform test data using the same scaler (do NOT fit again!)
+> > X_test_scaled = scaler.transform(X_test)
+> >
+> > # Train Random Forest model on scaled features
+> > RF = RandomForestRegressor(random_state=0)
+> > RF.fit(X_train_scaled, y_train)
+> >
+> > # Predict on scaled test set
+> > y_pred_scaled = RF.predict(X_test_scaled)
+> >
+> > # Compute MSE
+> > mse_scaled = mean_squared_error(y_test, y_pred_scaled)
+> > mse_scaled
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
 
-# Initialize  the target
-y = df.gap_expt.values
-y = y.astype(np.float32)
-# target variable as 1D float32 array
-y = df.gap_expt.values.astype(np.float32)
 
-# features
-X = df.drop('gap_expt', axis=1)
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, shuffle=True, random_state=0
-)
+> ## Exercise 2: Retrain the Model with Normalized Features Using Support Vector Regression (SVR)
+>
+> Support Vector Regression (SVR) is highly sensitive to the scale of input features, making feature normalization a critical step. Unlike tree-based models such as Random Forest, SVR relies on distance-based computations and can perform poorly if features are not standardized. In this exercise, you will:
+>
+> 1. Extract the target variable `gap_expt` and ensure it is in the correct format.
+> 2. Prepare the feature matrix by dropping the target column.
+> 3. Split the data into training and test sets (80/20).
+> 4. Apply `StandardScaler` to normalize **both** features and the target (optional but often helpful for SVR).
+> 5. Train a `SVR` model on the scaled features.
+> 6. Evaluate the model using Mean Squared Error (MSE) on the test set.
+>
+> This exercise highlights the importance of **feature scaling** when working with distance-based models like SVR and contrasts it with less sensitive models such as Random Forest.
+> 
+> > ## Solution
+> >
+> > ~~~
+> > # 1. Use StandardScaler and train an SVR model
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> > from sklearn.svm import SVR
+> > from sklearn.metrics import mean_squared_error
+> > import numpy as np
+> >
+> > # Initialize the target
+> > y = df.gap_expt.values
+> > y = y.astype(np.float32)
+> >
+> > # Features
+> > X = df.drop('gap_expt', axis=1)
+> >
+> > # Split data
+> > X_train, X_test, y_train, y_test = train_test_split(
+> >     X, y, test_size=0.2, shuffle=True, random_state=0
+> > )
+> >
+> > # Initialize scalers for features and target
+> > scaler_X = StandardScaler()
+> > scaler_y = StandardScaler()
+> >
+> > # Scale features
+> > X_train_scaled = scaler_X.fit_transform(X_train)
+> > X_test_scaled = scaler_X.transform(X_test)
+> >
+> > # Scale target (helps SVR converge faster; inverse transform needed for evaluation)
+> > y_train_scaled = scaler_y.fit_transform(y_train.reshape(-1, 1)).ravel()
+> >
+> > # Train SVR model on scaled features and scaled target
+> > svr = SVR(kernel='rbf', C=1.0, epsilon=0.1)
+> > svr.fit(X_train_scaled, y_train_scaled)
+> >
+> > # Predict on scaled test set
+> > y_pred_scaled = svr.predict(X_test_scaled)
+> >
+> > # Inverse transform predictions to original scale
+> > y_pred = scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+> >
+> > # Compute MSE in original scale
+> > mse = mean_squared_error(y_test, y_pred)
+> > mse
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
 
-# Initialize scaler
-scaler = StandardScaler()
+> ## Exercise 3: Retrain the Model with Normalized Features Using XGBoost
+>
+> XGBoost (Extreme Gradient Boosting) is a powerful tree-based ensemble method that is inherently robust to feature scaling. However, proper preprocessing—including standardization—can still improve convergence and facilitate fair comparisons across features, especially when integrating with other pipelines or models. In this exercise, you will:
+>
+> 1. Extract the target variable `gap_expt` and ensure it is in the correct format.
+> 2. Prepare the feature matrix by dropping the target column.
+> 3. Split the data into training and test sets (80/20).
+> 4. Apply `StandardScaler` to normalize the features — fitting only on the training set.
+> 5. Train an **XGBoost Regressor** (`XGBRegressor`) on both the original and scaled features (for comparison).
+> 6. Evaluate both models using Mean Squared Error (MSE) on the test set.
+>
+> This exercise demonstrates that while **XGBoost does not require feature scaling**, applying it does not break performance—and helps reinforce best practices in consistent preprocessing workflows.
+> 
+> > ## Solution
+> >
+> > ~~~
+> > # 1. Use StandardScaler and train an XGBoost model
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> > from xgboost import XGBRegressor
+> > from sklearn.metrics import mean_squared_error
+> > import numpy as np
+> >
+> > # Initialize the target
+> > y = df.gap_expt.values
+> > y = y.astype(np.float32)
+> >
+> > # Features
+> > X = df.drop('gap_expt', axis=1)
+> >
+> > # Split data
+> > X_train, X_test, y_train, y_test = train_test_split(
+> >     X, y, test_size=0.2, shuffle=True, random_state=0
+> > )
+> >
+> > # Initialize and apply StandardScaler to features
+> > scaler = StandardScaler()
+> > X_train_scaled = scaler.fit_transform(X_train)
+> > X_test_scaled = scaler.transform(X_test)
+> >
+> > # ========================================
+> > # Option A: Train XGBoost on Original (Unscaled) Features
+> > # ========================================
+> > print("Training XGBoost on original features...")
+> > xgb_orig = XGBRegressor(random_state=0, n_estimators=100, learning_rate=0.1, max_depth=6)
+> > xgb_orig.fit(X_train, y_train)
+> > y_pred_orig = xgb_orig.predict(X_test)
+> > mse_orig = mean_squared_error(y_test, y_pred_orig)
+> > print(f"MSE (Original Features): {mse_orig:.4f}")
+> >
+> > # ========================================
+> > # Option B: Train XGBoost on Scaled Features
+> > # ========================================
+> > print("Training XGBoost on scaled features...")
+> > xgb_scaled = XGBRegressor(random_state=0, n_estimators=100, learning_rate=0.1, max_depth=6)
+> > xgb_scaled.fit(X_train_scaled, y_train)  # Note: target not scaled; XGBoost handles it well
+> > y_pred_scaled = xgb_scaled.predict(X_test_scaled)
+> > mse_scaled = mean_squared_error(y_test, y_pred_scaled)
+> > print(f"MSE (Scaled Features): {mse_scaled:.4f}")
+> >
+> > # ========================================
+> > # Summary
+> > # ========================================
+> > print(f"\nComparison:")
+> > print(f"Without scaling: MSE = {mse_orig:.4f}")
+> > print(f"With scaling:    MSE = {mse_scaled:.4f}")
+> > print(f"Performance {'improved' if mse_scaled < mse_orig else 'was similar or slightly worse'} with scaling.")
+> >
+> > # Final return value (scaled version)
+> > mse_scaled
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
 
-# Fit scaler on training features and transform training data
-X_train_scaled = scaler.fit_transform(X_train)
-
-# Transform test data using the same scaler (do NOT fit again!)
-X_test_scaled = scaler.transform(X_test)
-
-RF = RandomForestRegressor()
-RF.fit(X_train_scaled,y_train)
-y_pred_scaled = RF.predict(X_test_scaled)
-mse_scaled = mean_squared_error(y_pred_scaled, y_test)
-mse_scaled
-~~~
-{: .python}
+> ## Exercise 4 : Compare RandomForest, SVR, and XGBoost Models Using Normalized Features
+>
+> In this comprehensive exercise, you will retrain and compare **three different regression models** — `RandomForestRegressor`, `SVR`, and `XGBRegressor` — using **normalized input features**. The goal is to evaluate how each model performs on the same dataset after proper preprocessing, highlighting the impact of model choice and sensitivity to feature scaling.
+>
+> You will:
+>
+> 1. Extract the target variable `gap_expt` and prepare the feature matrix.
+> 2. Split the data into training and test sets (80/20).
+> 3. Apply `StandardScaler` to normalize the features (fit only on training data).
+> 4. Train and evaluate each of the following models:
+>    - **RandomForest**: Tree-based, robust to scale.
+>    - **SVR**: Distance-based, highly sensitive to scale.
+>    - **XGBoost**: Gradient boosting, tree-based, scale-robust but benefits from clean pipelines.
+> 5. Use **Mean Squared Error (MSE)** for comparison.
+> 6. Visualize the predictions vs. true values across models.
+>
+> This exercise emphasizes **model comparison**, **preprocessing best practices**, and understanding **how algorithmic assumptions affect performance**.
+> 
+> > ## Solution
+> >
+> > ~~~
+> > # Compare RandomForest, SVR, and XGBoost with standardized features
+> > from sklearn.preprocessing import StandardScaler
+> > from sklearn.model_selection import train_test_split
+> > from sklearn.ensemble import RandomForestRegressor
+> > from sklearn.svm import SVR
+> > from xgboost import XGBRegressor
+> > from sklearn.metrics import mean_squared_error
+> > import numpy as np
+> > import matplotlib.pyplot as plt
+> >
+> > # Initialize the target
+> > y = df.gap_expt.values
+> > y = y.astype(np.float32)
+> >
+> > # Features
+> > X = df.drop('gap_expt', axis=1)
+> >
+> > # Split data
+> > X_train, X_test, y_train, y_test = train_test_split(
+> >     X, y, test_size=0.2, shuffle=True, random_state=0
+> > )
+> >
+> > # Initialize and apply StandardScaler (only on features)
+> > scaler = StandardScaler()
+> > X_train_scaled = scaler.fit_transform(X_train)
+> > X_test_scaled = scaler.transform(X_test)
+> >
+> > # Dictionary to store results
+> > results = {}
+> >
+> > # ========================================
+> > # 1. RandomForest Regressor (on scaled features)
+> > # ========================================
+> > print("Training RandomForest...")
+> > rf = RandomForestRegressor(random_state=0, n_estimators=100)
+> > rf.fit(X_train_scaled, y_train)
+> > y_pred_rf = rf.predict(X_test_scaled)
+> > mse_rf = mean_squared_error(y_test, y_pred_rf)
+> > results['RandomForest'] = mse_rf
+> > print(f"RandomForest MSE: {mse_rf:.4f}")
+> >
+> > # ========================================
+> > # 2. SVR (Support Vector Regression) - Requires scaling
+> > # ========================================
+> > print("Training SVR...")
+> > # Scale target for SVR as well
+> > scaler_y = StandardScaler()
+> > y_train_scaled_svr = scaler_y.fit_transform(y_train.reshape(-1, 1)).ravel()
+> > svr = SVR(kernel='rbf', C=1.0, epsilon=0.1)
+> > svr.fit(X_train_scaled, y_train_scaled_svr)
+> > y_pred_svr_scaled = svr.predict(X_test_scaled)
+> > y_pred_svr = scaler_y.inverse_transform(y_pred_svr_scaled.reshape(-1, 1)).ravel()
+> > mse_svr = mean_squared_error(y_test, y_pred_svr)
+> > results['SVR'] = mse_svr
+> > print(f"SVR MSE: {mse_svr:.4f}")
+> >
+> > # ========================================
+> > # 3. XGBoost Regressor (on scaled features)
+> > # ========================================
+> > print("Training XGBoost...")
+> > xgb = XGBRegressor(random_state=0, n_estimators=100, learning_rate=0.1, max_depth=6)
+> > xgb.fit(X_train_scaled, y_train)
+> > y_pred_xgb = xgb.predict(X_test_scaled)
+> > mse_xgb = mean_squared_error(y_test, y_pred_xgb)
+> > results['XGBoost'] = mse_xgb
+> > print(f"XGBoost MSE: {mse_xgb:.4f}")
+> >
+> > # ========================================
+> > # Summary of Results
+> > # ========================================
+> > print("\n" + "="*40)
+> > print("MODEL COMPARISON (MSE)")
+> > print("="*40)
+> > for model, mse in results.items():
+> >     print(f"{model:>12}: {mse:.4f}")
+> > best_model = min(results, key=results.get)
+> > print(f"\nBest Model: {best_model} (MSE = {results[best_model]:.4f})")
+> >
+> > # ========================================
+> > # Visualization: True vs Predicted
+> > # ========================================
+> > plt.figure(figsize=(12, 4))
+> > models = ['RandomForest', 'SVR', 'XGBoost']
+> > y_preds = [y_pred_rf, y_pred_svr, y_pred_xgb]
+> > mses = [mse_rf, mse_svr, mse_xgb]
+> >
+> > for i, (name, y_pred, mse) in enumerate(zip(models, y_preds, mses)):
+> >     plt.subplot(1, 3, i+1)
+> >     plt.scatter(y_test, y_pred, alpha=0.6, color=['tab:blue', 'tab:orange', 'tab:green'][i])
+> >     plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+> >     plt.xlabel("True Values")
+> >     plt.ylabel("Predictions")
+> >     plt.title(f"{name}\nMSE = {mse:.4f}")
+> >     plt.axis('equal')
+> >
+> > plt.suptitle("True vs Predicted Values for Each Model", fontsize=14)
+> > plt.tight_layout()
+> > plt.savefig("model_comparison_predictions.png", dpi=150)
+> > plt.show()
+> >
+> > # Final return value: best MSE
+> > results[best_model]
+> > ~~~
+> > {: .python}
+> {: .solution}
+{: .challenge}
 
 
 
