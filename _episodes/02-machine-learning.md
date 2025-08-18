@@ -954,51 +954,6 @@ SVM Energy Prediction MAE: 0.0970 eV
 > {: .solution}
 {: .challenge}
 
-## Formation energy
-
-Formation energy prediction using machine learning (ML) is a powerful approach in materials science to estimate the stability and thermodynamic properties of compounds. Formation energy quantifies the energy change when a compound forms from its constituent elements and serves as a key indicator of material stability—the lower (more negative) the formation energy, the more stable the material.
-
-Machine learning models for predicting formation energy leverage large datasets of materials' properties and compositions to learn complex relationships between elemental or structural features and the resulting formation energies. These models can range from traditional linear regression and decision trees to advanced neural networks incorporating crystal symmetry and atomic descriptors.
-
-The advantage of using ML for formation energy prediction lies in its efficiency and accuracy compared to costly and time-consuming quantum mechanical calculations. ML models can quickly screen and identify stable materials from a vast chemical space, accelerating the discovery and design of new materials.
-
-Recent advances have shown that ML models can achieve high predictive accuracy even without detailed crystal structure information by focusing on elemental properties like electronegativity and electron affinity. Incorporating structural descriptors such as space group symmetry further enhances prediction performance. The interpretability of these models also offers insights into the underlying factors that govern material stability
-
-Garnet structures refer to a well-known type of crystal structure found in a group of silicate minerals called garnets. These minerals share a common crystal framework characterized by a complex, three-dimensional arrangement of atoms, which affects their physical and chemical properties. Garnets commonly appear in many geological and materials science contexts due to their robust structure and various industrial applications.
-
-~~~
-from __future__ import annotations
-
-import matplotlib.pyplot as plt
-import pandas as pd
-from pymatgen.core import Structure
-from sklearn.linear_model import LinearRegression
-
-from maml.describers import DistinctSiteProperty
-from maml.models import SKLModel
-
-# Enable inline plotting
-%matplotlib inline
-
-# Prepare the data
-df = pd.read_csv("garnet.csv")
-df = df[df["FormEnergyPerAtom"] > -5]
-
-# Display the first few rows of the dataset
-df.head()
-~~~
-{: .python}
-
-~~~ 
-      c     a     d  C-IonicRadius  ...  A-ElectroNegativity  D-IonicRadius  D-ElectroNegativity  FormEnergyPerAtom
-0  Gd3+  Sc3+  Al3+          1.075  ...                 1.36          0.675                 1.61          -0.048480
-1  Ca2+  Sc3+  Ti4+          1.140  ...                 1.36          0.745                 1.54          -0.140997
-2  Cd2+  Cr3+  Ge4+          1.090  ...                 1.66          0.670                 2.01          -0.087724
-3  Mg2+  Al3+  Ge4+          0.860  ...                 1.61          0.670                 2.01          -0.037325
-4  Cd2+  Tm3+  Ti4+          1.090  ...                 1.25          0.745                 1.54           0.004684
-[5 rows x 10 columns]
-~~~
-{: .output}
 
 ## Band Gap
 
@@ -1980,3 +1935,106 @@ Gradient Boosting 0.437625 0.661533 0.422993 0.873017
 
 ~~~
 {: .output}
+
+
+## Formation energy
+
+Formation energy prediction using machine learning (ML) is a powerful approach in materials science to estimate the stability and thermodynamic properties of compounds. Formation energy quantifies the energy change when a compound forms from its constituent elements and serves as a key indicator of material stability—the lower (more negative) the formation energy, the more stable the material.
+
+Machine learning models for predicting formation energy leverage large datasets of materials' properties and compositions to learn complex relationships between elemental or structural features and the resulting formation energies. These models can range from traditional linear regression and decision trees to advanced neural networks incorporating crystal symmetry and atomic descriptors.
+
+The advantage of using ML for formation energy prediction lies in its efficiency and accuracy compared to costly and time-consuming quantum mechanical calculations. ML models can quickly screen and identify stable materials from a vast chemical space, accelerating the discovery and design of new materials.
+
+Recent advances have shown that ML models can achieve high predictive accuracy even without detailed crystal structure information by focusing on elemental properties like electronegativity and electron affinity. Incorporating structural descriptors such as space group symmetry further enhances prediction performance. The interpretability of these models also offers insights into the underlying factors that govern material stability
+
+Garnet structures refer to a well-known type of crystal structure found in a group of silicate minerals called garnets. These minerals share a common crystal framework characterized by a complex, three-dimensional arrangement of atoms, which affects their physical and chemical properties. Garnets commonly appear in many geological and materials science contexts due to their robust structure and various industrial applications.
+
+~~~
+from __future__ import annotations
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from pymatgen.core import Structure
+from sklearn.linear_model import LinearRegression
+
+from maml.describers import DistinctSiteProperty
+from maml.models import SKLModel
+
+# Enable inline plotting
+%matplotlib inline
+
+# Prepare the data
+path = 'https://raw.githubusercontent.com/mesfind/datasets/master/garnet.csv'
+df = pd.read_csv(path)
+df = df[df["FormEnergyPerAtom"] > -5]
+
+# Display the first few rows of the dataset
+df.head()
+~~~
+{: .python}
+
+~~~ 
+      c     a     d  C-IonicRadius  ...  A-ElectroNegativity  D-IonicRadius  D-ElectroNegativity  FormEnergyPerAtom
+0  Gd3+  Sc3+  Al3+          1.075  ...                 1.36          0.675                 1.61          -0.048480
+1  Ca2+  Sc3+  Ti4+          1.140  ...                 1.36          0.745                 1.54          -0.140997
+2  Cd2+  Cr3+  Ge4+          1.090  ...                 1.66          0.670                 2.01          -0.087724
+3  Mg2+  Al3+  Ge4+          0.860  ...                 1.61          0.670                 2.01          -0.037325
+4  Cd2+  Tm3+  Ti4+          1.090  ...                 1.25          0.745                 1.54           0.004684
+[5 rows x 10 columns]
+~~~
+{: .output}
+
+~~~
+from pymatgen.core import Structure
+from __future__ import annotations
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from pymatgen.core import Structure
+from sklearn.linear_model import LinearRegression
+
+from maml.describers import DistinctSiteProperty
+from maml.models import SKLModel
+import os
+import subprocess
+
+# Download the CIF file using wget if not already present
+filename = "Y3Al5O12.cif"
+if not os.path.exists(filename):
+    subprocess.run(["wget", "https://raw.githubusercontent.com/mesfind/datasets/master/Y3Al5O12.cif"])
+
+# Load the structure from the local CIF file
+parent = Structure.from_file(filename)
+parent.add_oxidation_state_by_guess()
+
+mapping = {"C": range(12), "D": range(12, 24), "A": range(24, 32)}
+
+# The rest of your code continues here
+
+parent.add_oxidation_state_by_guess()
+mapping = {"C": range(12), "D": range(12, 24), "A": range(24, 32)}
+## substitute the species to the parent structure
+
+structures = []
+targets = []
+for _i, j in df.iterrows():
+    s = parent.copy()
+    for k, indices in mapping.items():
+        for index in indices:
+            s.replace(index, j[k.lower()])
+    structures.append(s)
+    targets.append(j["FormEnergyPerAtom"])
+model = SKLModel(
+    describer=DistinctSiteProperty(wyckoffs=["12c", "12d", "8a"], properties=["atomic_radius", "X"]),
+    model=LinearRegression(),
+)
+~~~
+{: .python}
+
+~~~
+model.train(structures[:500], targets[:500]);
+preds = model.predict_objs(structures[500:]);
+plt.plot(targets[500:], preds, "o")
+plt.show()
+~~~
+{: .python}
