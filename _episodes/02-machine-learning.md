@@ -999,3 +999,125 @@ df.head()
 [5 rows x 10 columns]
 ~~~
 {: .output}
+
+## Band Gap
+
+~~~
+# Import necessary libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+# Set style for plots
+sns.set(style="whitegrid")
+plt.rcParams["figure.figsize"] = (10, 6)
+
+# Assume df is already loaded
+# y: target variable, X: features
+y = df['gap_expt'].values.astype(np.float32)
+X = df.drop('gap_expt', axis=1)
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, shuffle=True, random_state=0
+)
+
+# Scale the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Define models
+models = {
+    "Random Forest": RandomForestRegressor(n_estimators=60, random_state=0),
+    "XGBoost": XGBRegressor(random_state=0, verbosity=0),
+    "SVR": SVR()
+}
+
+# Dictionary to store results
+results = {
+    "Model": [],
+    "MSE": [],
+    "RMSE": [],
+    "MAE": [],
+    "R2": []
+}
+
+# Store predictions for plotting
+predictions = {}
+
+# Train and evaluate each model
+for name, model in models.items():
+    # Fit model
+    model.fit(X_train_scaled, y_train)
+    
+    # Predict
+    y_pred = model.predict(X_test_scaled)
+    predictions[name] = y_pred
+
+    # Metrics
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    
+    # Save to results
+    results["Model"].append(name)
+    results["MSE"].append(mse)
+    results["RMSE"].append(rmse)
+    results["MAE"].append(mae)
+    results["R2"].append(r2)
+    
+    print(f"--- {name} ---")
+    print(f"MSE: {mse:.4f}, RMSE: {rmse:.4f}, MAE: {mae:.4f}, R²: {r2:.4f}\n")
+
+# Convert results to DataFrame for easy viewing
+results_df = pd.DataFrame(results)
+print("Summary of Model Performance:")
+print(results_df)
+
+# === PLOT 1: True vs Predicted Values for Each Model ===
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+axes = axes.flatten()
+
+for i, (name, y_pred) in enumerate(predictions.items()):
+    ax = axes[i]
+    ax.scatter(y_test, y_pred, alpha=0.6, color='dodgerblue')
+    ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+    ax.set_xlabel('True Values (gap_expt)')
+    ax.set_ylabel('Predicted Values')
+    ax.set_title(f'{name}: True vs Predicted')
+    ax.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+# === PLOT 2: Comparison of Metrics Across Models (Fixed for Seaborn v0.14+) ===
+metrics = ['MSE', 'RMSE', 'MAE', 'R2']
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+axes = axes.flatten()
+
+for i, metric in enumerate(metrics):
+    ax = axes[i]
+    # Fixed: Use hue='Model' + legend=False
+    sns.barplot(data=results_df, x='Model', y=metric, ax=ax, hue='Model', palette="viridis", legend=False)
+    ax.set_title(f'Comparison of Models - {metric}')
+    ax.set_ylim(0, max(results_df[metric]) * 1.1)
+    for j, val in enumerate(results_df[metric]):
+        ax.text(j, val + max(results_df[metric])*0.01, f'{val:.3f}', ha='center', va='bottom', fontsize=9)
+
+plt.tight_layout()
+plt.show()
+
+# Optional: Display results table
+print("\nDetailed Results:")
+display(results_df)
+~~~
+{: .python}
