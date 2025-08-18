@@ -23,9 +23,6 @@ keypoints:
 
 The Materials Project dataset is a widely used resource in machine learning (ML) for materials science. It provides computed properties and crystal structures for a vast number of materials, derived from quantum mechanical calculations. This dataset currently includes over 70,000 materials with millions of associated properties, making it a rich foundation for developing ML algorithms aimed at materials discovery and prediction.
 
-### Main Features
-
-This dataset comprises computed properties and crystal structures for over 70,000 inorganic materials across diverse chemistries and crystal systems, enabling broad structure-property modeling. All properties derive from consistent, high-quality density functional theory (DFT) calculations, ensuring reliable and comparable targets such as formation energy, band gap, and elastic moduli. The data is curated to minimize duplication, preserving material uniqueness and reducing bias. Researchers can extract rich chemical and structural descriptors to enhance model performance. Accessible via a web platform and API with Python tools (e.g., pymatgen), it supports seamless integration into machine learning workflows. The dataset facilitates advanced techniques, including graph neural networks on crystal graphs, and is continuously updated with thousands of new calculations weekly. Its versatility extends beyond property prediction to force field development, structure-property analysis, and materials discovery via active learning.
 
 ### Data Access with MP API
 
@@ -138,8 +135,9 @@ Stable binary compounds count 5500
 ~~~
 {: .output}
 
-### Data Agumenation 
+### Multiple Data sources Augmentation
 
+Multiple data sources augmentation combines computational data from the Materials Project with experimental datasets such as MatBench. Computational data provide structural and energetic descriptors, while experimental data supply measured properties like band gaps. Merging them yields a hybrid dataset that is more representative and reliable for modeling. For example in the following code snipps, you can augmenat datasets from two different souces 
 
 ~~~
 from mp_api.client import MPRester
