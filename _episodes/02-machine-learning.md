@@ -1002,6 +1002,268 @@ df.head()
 
 ## Band Gap
 
+Predicting band gaps using machine learning (ML) is a cutting-edge approach that enables fast and accurate estimation of a material's electronic band gap—a key property influencing its electronic and optical behavior. ML models leverage extensive material databases and elemental descriptors to predict band gaps efficiently, overcoming the high computational costs and limitations of traditional methods like density functional theory (DFT). By training on known band gap data, ML models such as support vector regression, random forests, and gradient boosting can capture complex relationships between composition and band gap, accelerating the discovery of new materials with desired electronic properties. Additionally, some ML techniques offer interpretable models that provide insight into the physical factors affecting band gaps, making ML a powerful tool in materials science for band gap prediction and material design.
+
+## Getting the dataset
+
+~~~
+from mp_api.client import MPRester
+import pandas as pd
+api_key = 'your_api_key'
+fields = [
+    "material_id", "formula_pretty", "symmetry",
+    "nsites", "energy_per_atom", "volume",
+    "energy_above_hull", "total_magnetization"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 2],                 
+        energy_above_hull=(0, 0.001),        
+        fields=fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "energy_per_atom": doc.energy_per_atom,
+        "volume": doc.volume,
+        "energy_above_hull": doc.energy_above_hull,
+        "total_magnetization": doc.total_magnetization
+    }
+    if doc.symmetry:
+        row["spacegroup_number"] = doc.symmetry.number
+        row["crystal_system"] = doc.symmetry.crystal_system   
+    records.append(row)
+
+df = pd.DataFrame(records)
+
+print("Stable binary compounds count", len(df))
+print(df.head())
+~~~
+{: python}
+
+~~~
+Retrieving SummaryDoc documents: 100%|█| 5500/5500 [00:03<00:00, 1771.
+Stable binary compounds count 5500
+  material_id formula  num_sites  energy_per_atom       volume  \
+0    mp-11107   Ac2O3          5        -8.354915    91.511224   
+1    mp-32800   Ac2S3         40       -34.768478  1118.407852   
+2   mp-985305   Ac3In          8       -57.372981   309.226331   
+3   mp-985506   Ac3Tl          8       -64.936750   309.225189   
+4   mp-866199    AcAg          2       -45.267835    61.529375   
+
+   energy_above_hull  total_magnetization  spacegroup_number crystal_system  
+0                0.0         0.000000e+00                164       Trigonal  
+1                0.0         0.000000e+00                122     Tetragonal  
+2                0.0         1.642045e+00                194      Hexagonal  
+3                0.0         3.199100e-03                194      Hexagonal  
+4                0.0         6.000000e-07                221          Cubic  
+~~~
+{: .output}
+
+
+Let's now augment multiple experimenatl band gap with material project dataset 
+
+~~~
+from mp_api.client import MPRester
+import pandas as pd
+from matminer.datasets import load_dataset
+
+api_key = "FAOXV20YqTT2edzIRotOaC2ayHn10cDT"
+
+# query stable compounds with nelements = 2,3,4
+fields = [
+    "material_id", "formula_pretty", "symmetry",
+    "nsites", "energy_per_atom", "volume",
+    "energy_above_hull", "total_magnetization"
+]
+
+with MPRester(api_key) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=[2, 4],    # range inclusive [2,4]
+        energy_above_hull=(0, 0.001),
+        fields=fields
+    )
+
+records = []
+for doc in docs:
+    row = {
+        "material_id": doc.material_id,
+        "formula": doc.formula_pretty,
+        "num_sites": doc.nsites,
+        "energy_per_atom": doc.energy_per_atom,
+        "volume": doc.volume,
+        "energy_above_hull": doc.energy_above_hull,
+        "total_magnetization": doc.total_magnetization
+    }
+    if doc.symmetry:
+        row["spacegroup_number"] = doc.symmetry.number
+        row["crystal_system"] = doc.symmetry.crystal_system
+    records.append(row)
+
+df1 = pd.DataFrame(records)
+print("Stable compounds (2–4 elements)", len(df1))
+print(df1.head())
+
+# ---- experimental band gap datasets ----
+df2 = load_dataset("matbench_expt_gap")
+df2 = df2.rename(columns={"composition": "formula", "gap expt": "gap_expt"})
+df2 = df2[["formula", "gap_expt"]]
+
+df3 = load_dataset("expt_gap")
+df3 = df3.rename(columns={"formula": "formula", "gap expt": "gap_expt"})
+df3 = df3[["formula", "gap_expt"]]
+
+# union of experimental datasets
+df4 = pd.concat([df2, df3], ignore_index=True)
+df4 = df4[df4["gap_expt"] > 0].drop_duplicates("formula")
+print("Experimental band gap entries", len(df4))
+print(df4.head())
+
+# ---- merge DFT structural features with experimental gaps ----
+df = pd.merge(df1, df4, on="formula", how="inner")
+df = df.drop_duplicates("formula", keep="first")
+
+print("Final merged dataset", len(df))
+print(df.head())
+~~~
+{: .python}
+
+~~~
+Retrieving SummaryDoc documents: 100%|██████████| 33972/33972 [00:15<00:00, 2261.30it/s]
+Stable compounds (2–4 elements) 33972
+  material_id  formula  num_sites  energy_per_atom      volume  \
+0  mp-1183076  Ac2AgPb          4       -54.209271  134.563097   
+1  mp-1183086  Ac2CdHg          4       -52.120621  133.072641   
+2   mp-862786  Ac2CuGe          4       -40.884684  113.979079   
+3   mp-861883  Ac2CuIr          4       -50.462576  104.095515   
+4   mp-867241  Ac2GePd          4        -5.176522  114.834178   
+
+   energy_above_hull  total_magnetization  spacegroup_number crystal_system  
+0                0.0             0.910605                225          Cubic  
+1                0.0             0.628202                225          Cubic  
+2                0.0             0.001071                225          Cubic  
+3                0.0             0.000169                225          Cubic  
+4                0.0             0.000001                225          Cubic
+Experimental band gap entries 3651
+             formula  gap_expt
+2   Ag0.5Ge1Pb1.75S4      1.83
+3  Ag0.5Ge1Pb1.75Se4      1.51
+6            Ag2GeS3      1.98
+7           Ag2GeSe3      0.90
+8            Ag2HgI4      2.47
+Final merged dataset 1050
+  material_id   formula  num_sites  energy_per_atom      volume  \
+0     mp-9900   Ag2GeS3         12        -4.253843  267.880017   
+1  mp-1096802  Ag2GeSe3         12        -3.890180  309.160842   
+2    mp-23485   Ag2HgI4          7        -2.239734  266.737075   
+3      mp-353      Ag2O          6        -3.860246  107.442223   
+4  mp-2018369      Ag2S         12       -17.033431  245.557534   
+
+   energy_above_hull  total_magnetization  spacegroup_number crystal_system  \
+0           0.000000                  0.0                 36   Orthorhombic   
+1           0.000986                  0.0                 36   Orthorhombic   
+2           0.000000                  0.0                 82     Tetragonal   
+3           0.000000                  0.0                224          Cubic   
+4           0.000207                  0.0                 14     Monoclinic   
+
+   gap_expt  
+0      1.98  
+1      0.90  
+2      2.47  
+3      1.50  
+4      1.23  
+~~~
+{: .output}
+
+### Feature engineering 
+
+~~~
+from pymatgen.core import Composition
+from matminer.featurizers.composition import ElementProperty,AtomicOrbitals
+df['composition'] = df.formula.map(lambda x: Composition(x))
+df = df.dropna(axis=0)
+df = AtomicOrbitals().featurize_dataframe(df, 
+                                              'composition', 
+                                              ignore_errors=True,
+                                              return_errors=False)
+(df[df.gap_AO > 0]).head()
+df.head()
+~~~
+{: .python}
+
+~~~
+AtomicOrbitals: 100%|██████████| 1050/1050 [00:12<00:00, 84.01it/s] 
+material_id	formula	num_sites	energy_per_atom	volume	energy_above_hull	total_magnetization	spacegroup_number	crystal_system	gap_expt	composition	HOMO_character	HOMO_element	HOMO_energy	LUMO_character	LUMO_element	LUMO_energy	gap_AO
+0	mp-9900	Ag2GeS3	12	-4.253843	267.880017	0.000000	0.0	36	Orthorhombic	1.98	(Ag, Ge, S)	p	S	-0.261676	p	S	-0.261676	0.000000
+1	mp-1096802	Ag2GeSe3	12	-3.890180	309.160842	0.000986	0.0	36	Orthorhombic	0.90	(Ag, Ge, Se)	p	Se	-0.245806	p	Se	-0.245806	0.000000
+2	mp-23485	Ag2HgI4	7	-2.239734	266.737075	0.000000	0.0	82	Tetragonal	2.47	(Ag, Hg, I)	p	I	-0.267904	s	Hg	-0.205137	0.062767
+3	mp-353	Ag2O	6	-3.860246	107.442223	0.000000	0.0	224	Cubic	1.50	(Ag, O)	d	Ag	-0.298706	s	Ag	-0.157407	0.141299
+4	mp-2018369	Ag2S	12	-17.033431	245.557534	0.000207	0.0	
+~~~
+{: .output}
+
+### Preprocessing features
+
+~~~
+# define consistent mapping
+homo_lomo_mapper = {
+    "s": 1,
+    "p": 2,
+    "d": 3,
+    "f": 4,
+}
+
+# map to numeric, keep NaN for unknowns
+df["HOMO_character"] = df["HOMO_character"].astype(str).str.strip().str.lower()
+df["LUMO_character"] = df["LUMO_character"].astype(str).str.strip().str.lower()
+df["HOMO_character"] = df["HOMO_character"].map(homo_lomo_mapper)
+df["LUMO_character"] = df["LUMO_character"].map(homo_lomo_mapper)
+df.head()
+~~~
+{: .output}
+
+
+~~~
+# 1. use Standard Scaler to reduce mse
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+# Initialize  the target
+y = df.gap_expt.values
+y = y.astype(np.float32)
+# target variable as 1D float32 array
+y = df.gap_expt.values.astype(np.float32)
+
+# features
+X = df.drop('gap_expt', axis=1)
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, shuffle=True, random_state=0
+)
+
+# Initialize scaler
+scaler = StandardScaler()
+
+# Fit scaler on training features and transform training data
+X_train_scaled = scaler.fit_transform(X_train)
+
+# Transform test data using the same scaler (do NOT fit again!)
+X_test_scaled = scaler.transform(X_test)
+
+RF = RandomForestRegressor()
+RF.fit(X_train_scaled,y_train)
+y_pred_scaled = RF.predict(X_test_scaled)
+mse_scaled = mean_squared_error(y_pred_scaled, y_test)
+mse_scaled
+~~~
+{: .python}
+
+
 ~~~
 # Import necessary libraries
 import numpy as np
