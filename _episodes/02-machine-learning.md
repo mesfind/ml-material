@@ -961,6 +961,8 @@ Predicting band gaps using machine learning (ML) is a cutting-edge approach that
 
 ## Getting the dataset
 
+In this section, we demonstrate how to retrieve data on stable binary compounds from the Materials Project database using its API. By specifying criteria such as the number of elements and stability (energy above hull), we extract key material properties including chemical formula, symmetry, energy per atom, volume, and magnetization. The retrieved data is organized into a structured pandas DataFrame for easy analysis and further processing. This approach enables efficient access to high-quality materials data for research and machine learning applications.
+
 ~~~
 from mp_api.client import MPRester
 import pandas as pd
@@ -1019,9 +1021,12 @@ Stable binary compounds count 5500
 4                0.0         6.000000e-07                221          Cubic  
 ~~~
 {: .output}
+The result shows successful retrieval of data for 5,500 stable binary compounds from the Materials Project database. The extracted dataset includes key information such as material ID, chemical formula, number of atomic sites, energy per atom, volume, energy above hull (indicating stability), total magnetization, space group number, and crystal system. The preview of the dataset reveals a diverse set of compounds with a range of structural symmetries and electronic properties, providing a rich resource for further materials analysis and modeling.
 
 
-Let's now augment multiple experimenatl band gap with material project dataset 
+### Data Augmentation 
+
+In this section, we augment experimental band gap datasets by integrating them with structural and energetic data obtained from the Materials Project database. We retrieve stable compounds with 2 to 4 elements and combine these with multiple experimental band gap datasets to create a unified dataset. This merged dataset includes both experimental band gap values and corresponding material properties, facilitating more comprehensive analyses and model training.
 
 ~~~
 from mp_api.client import MPRester
@@ -1135,7 +1140,13 @@ Final merged dataset 1050
 ~~~
 {: .output}
 
+The results show the successful retrieval of 33,972 stable compounds with 2 to 4 elements from the Materials Project database. Additionally, 3,651 experimental band gap entries were obtained from multiple datasets. After merging these datasets based on the formula, a final unified dataset of 1,050 compounds was created. This merged dataset combines theoretical material properties (such as energy per atom, volume, and crystal symmetry) with experimentally measured band gap values, providing a valuable and comprehensive resource for material analysis and predictive modeling. The sample data illustrates a variety of compounds with detailed structural and electronic features alongside their experimental band gaps.
+
+
+
 ### Feature engineering 
+
+In this step, we perform feature engineering on the dataset by extracting additional material descriptors from the chemical composition using the pymatgen and matminer libraries. Specifically, we convert the formula strings into Composition objects and apply the AtomicOrbitals featurizer to compute features related to atomic orbital characteristics. These new features enrich the dataset with meaningful chemical information that can improve the accuracy and interpretability of machine learning models for predicting band gaps. Missing values are removed to ensure data quality before further analysis
 
 ~~~
 from pymatgen.core import Composition
@@ -1162,7 +1173,11 @@ material_id	formula	num_sites	energy_per_atom	volume	energy_above_hull	total_mag
 ~~~
 {: .output}
 
+The results show that the AtomicOrbitals featurizer successfully generated atomic orbital-related features for all 1,050 entries in the dataset. These features include information about the highest occupied molecular orbital (HOMO) and lowest unoccupied molecular orbital (LUMO) characters, elements, and energies, as well as the calculated band gap based on atomic orbital data (gap_AO). The dataset now contains enhanced chemical descriptors such as orbital types (e.g., s, p, d), corresponding elements, and orbital energy levels, which provide deeper insight into the electronic structure of materials and can improve predictive modeling of their band gaps. The feature engineering process completed efficiently with comprehensive coverage across all materials.
+
 ### Preprocessing features
+
+In this step, we preprocess the atomic orbital character features by converting categorical orbital labels (such as s, p, d, f) into a consistent numeric format. This mapping standardizes the data, making it suitable for machine learning algorithms that require numerical inputs. Unknown or missing values are preserved as NaN to avoid incorrect data transformation, ensuring clean and reliable feature representation for model training.
 
 ~~~
 # define consistent mapping
