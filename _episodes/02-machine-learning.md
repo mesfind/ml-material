@@ -1207,6 +1207,20 @@ df.head()
 ~~~
 {: .python}
 
+~~~
+!pip install figrecipes
+from figrecipes import PlotlyFig
+# plot vpa vs bandgap
+pf = PlotlyFig(df, y_title='Band gap', x_title='Volume per atom', filename='bandgap_vpa',mode='notebook')
+pf.xy(('vpa', 'band_gap'), labels='spacegroup.number',   colorscale='Viridis', limits={'x': (0, 80)})
+~~~
+{: .python}
+
+~~~{markdown}
+![](fig/vpa_bandgap.png)
+~~~
+
+
 ### Drop uncessary features
 
 ~~~
