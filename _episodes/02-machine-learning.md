@@ -1207,6 +1207,7 @@ df.head()
 ~~~
 {: .python}
 
+Now let's utilize the figrecipes library—specifically the PlotlyFig class—to create an interactive scatter plot of volume per atom (vpa) versus band gap for a set of materials. Each point on the plot represents a material, with the color corresponding to its space group number, and the axes showing how the electronic band gap varies as a function of atomic volume. This visualization helps identify trends and relationships between crystal structures and their electronic properties, facilitating material discovery and analysis.
 ~~~
 !pip install figrecipes
 from figrecipes import PlotlyFig
@@ -1216,12 +1217,13 @@ pf.xy(('vpa', 'band_gap'), labels='spacegroup.number',   colorscale='Viridis', l
 ~~~
 {: .python}
 
-~~~{markdown}
 ![](fig/vpa_bandgap.png)
-~~~
 
+The inverse relationship in the plot between volume per atom (vpa) and band gap means that as the volume per atom increases, the band gap tends to decrease, and vice versa
 
-### Drop uncessary features
+### Save the preprocessed featrues
+
+In this step, we clean and prepare the dataset for further analysis by dropping rows with missing values and removing irrelevant columns such as material ID, formula, number of sites, and volume. The cleaned and streamlined dataset, containing only the essential features, is then saved to a CSV file named "band_gap_preprocessed.csv" for convenient access and use in subsequent modeling or visualization tasks.
 
 ~~~
 df.dropna(axis=0)
@@ -1231,6 +1233,8 @@ df.to_csv("band_gap_preprocessed.csv",index=0)
 {: .python}
 
 ### Building an ML model
+
+In this section, we build a machine learning model to predict the band gap of materials based on their preprocessed features. We use the Random Forest Regressor, a powerful ensemble learning method, for this regression task. The dataset is split into training and testing subsets to evaluate the model's performance accurately. After training the model on the training data, we predict band gap values on the test set and assess the prediction accuracy using mean squared error (MSE), which measures the average squared difference between predicted and true values.
 
 ~~~
 from sklearn.model_selection import train_test_split
