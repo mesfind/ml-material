@@ -1207,7 +1207,11 @@ material_id	formula	num_sites	energy_per_atom	volume	energy_above_hull	total_mag
 ~~~
 {: .output}
 
+The results show the dataset after preprocessing, where the HOMO and LUMO orbital characters have been successfully mapped to numerical values (e.g., 1 for s, 2 for p, etc.). The dataset includes detailed material properties such as energy per atom, volume, stability indicators, crystal symmetry, and experimental band gaps alongside these numerical orbital features. This structured and numeric representation of the data is now well-prepared for machine learning applications aimed at predicting material properties based on their atomic and electronic characteristics.
+
 ### Augment extra featrues
+
+In this step, we augment the dataset with additional descriptive features derived from elemental properties using the Magpie data source. Specifically, we compute the mean atomic weight and covalent radius for each material's composition. These features, combined with the previously calculated values, such as volume per atom (vpa), provide richer chemical and structural information to improve the performance and interpretability of predictive models.
 
 ~~~
 from matminer.utils.data import MagpieData
