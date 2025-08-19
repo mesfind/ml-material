@@ -31,6 +31,21 @@ Today an MLP consists of three things:
 2. A dataset that provides the atomistic systems and the desired output labels. This label could be energy, forces, or other atomistic properties.
 3. A checkpoint that stores the trained model for use in predictions.
 
+# CHGNet Pretrained model
+
+CHGNet (Crystal Hamiltonian Graph Neural Network) is an advanced graph neural network interatomic potential that integrates charge information directly into its modeling framework. Trained on static and relaxation trajectories obtained from GGA/GGA+U calculations in the Materials Project database, CHGNet excels at capturing electron interactions and charge distribution with near-DFT accuracy. In CHGNet, periodic crystal structures are represented as atom graphs by identifying neighboring atoms within a specified radius of each atom in the primitive cell, enabling detailed and accurate atomistic simulations. The short workflow descriptions for the CHGNet model is as follows
+
+  - The input is a crystal structure with unknown atomic charges, which CHGNet uses to predict energy, forces, stress, and magnons, producing a charge-decorated structure.
+
+  - Pairwise bond information between atoms is extracted to form a bond graph, while pairwise angle information between bonds is also captured.
+
+  - An interaction block facilitates information sharing and updating among atoms, bonds, and angles.
+
+  - The graphs are processed through basis expansions and embedding layers to generate detailed features for atoms, bonds, and angles.
+
+  - In the atom convolution layer, neighboring atom and bond information is processed via weighted message passing and aggregated back to the atoms for enhanced representation.
+
+
 # FAIR Chemistry models
 
 FAIRChem provides a number of GNNs in this repository. Each model represents a different approach to featurization, and a different machine learning architecture. The models can be used for different tasks, and you will find different checkpoints associated with different datasets and tasks. Read the papers for details, but we try to hihglight here the core ideas and advancements from one model the next. 
