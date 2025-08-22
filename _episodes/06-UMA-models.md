@@ -154,6 +154,8 @@ LBFGS:   20 10:40:31      -93.907350        0.042256
 ~~~
 {: .output}
 
+From the output result, the energy steadily decreases across the steps, showing that the system is lowering its energy and approaching stability. Correspondingly, the maximum force reduces from a high initial value (around `11.5 eV/Å`) down to below `0.05 eV/Å`, indicating that the atoms are reaching their equilibrium positions and the optimization is converging successfully. This process ensures that the atomic configuration is optimized to a local minimum in the potential energy surface, reflecting a physically realistic and stable structure.
+
 ## Pretrained Model for Omol
 
 This workflow leverages the "uma-s-1p1" pretrained FAIRChem model specifically designed for organic molecules. It encompasses the creation or import of organic molecular structures into an ASE database, followed by batch data preparation and application of the model to predict molecular properties efficiently. This approach facilitates scalable and accurate predictions of organic molecular behavior using cutting-edge machine-learned interatomic potentials.
