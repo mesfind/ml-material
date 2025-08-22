@@ -87,3 +87,22 @@ FAIRChem provides a number of GNNs in this repository. Each model represents a d
 **Core Idea:** GemNet-OC is a faster and more scalable version of GemNet, a model that incorporated some clever features like triplet/quadruplet information into GNNs, and provided SOTA performance when released on OC20. 
 
 **Paper:** https://arxiv.org/abs/2204.02782
+
+# Access to gated models on huggingface
+
+To access gated models like UMA, you need to get a HuggingFace account and request access to the UMA models.
+
+- Get and login to your [Huggingface account](https://huggingface.co/)
+- Request access to https://huggingface.co/facebook/UMA
+- Create a Huggingface token at https://huggingface.co/settings/tokens/ with the permission “Permissions: Read access to contents of all public gated repos you can access”
+- Add the token as an environment variable (using huggingface-cli login or by setting the HF_TOKEN environment variable.
+
+~~~
+!pip install -U "huggingface_hub[cli]"
+~~~
+{: .python}
+
+~~~
+!huggingface-cli login
+~~~
+{: .python}
