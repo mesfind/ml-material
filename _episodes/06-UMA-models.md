@@ -79,6 +79,27 @@ Models are referenced by their name, below are the currently supported models:
 - **odac:** use this for MOFs
 - **omc:** use this for molecular crystals
 
+Let's start with the integration of FAIRChem's pretrained machine-learned interatomic potential (MLIP) with the Atomic Simulation Environment (ASE) for the purpose of geometrical optimization of an adsorbate on a metal surface. Initially, requisite modules are imported from the FAIRChem core and ASE packages, and the computational device is selected based on availability, prioritizing CUDA-enabled GPUs. Subsequently, a pretrained MLIP model titled "uma-s-1p1" is retrieved, serving as the predictive unit for atomic interactions. The system setup involves constructing a copper (Cu) slab exposing the (100) crystallographic face, with a 3x3x3 supercell and a vacuum spacing included to minimize interlayer interactions. A carbon monoxide (CO) molecule is instantiated as the adsorbate and placed upon the slab at the bridge adsorption site, set at an initial vertical distance of `2.0Å` from the surface.
+
+~~~
+from fairchem.core import pretrained_mlip, FAIRChemCalculator
+from ase.build import fcc100, add_adsorbate, molecule
+from ase.optimize import LBFGS
+import torch
+device = str("cuda") if torch.cuda.is_available() else str("cpu")
+predictor = pretrained_mlip.get_predict_unit("uma-s-1p1", device=device)
+calc = FAIRChemCalculator(predictor, task_name="oc20")
+# Set up your system as an ASE atoms object
+slab = fcc100("Cu", (3, 3, 3), vacuum=8, periodic=True)
+adsorbate = molecule("CO")
+add_adsorbate(slab, adsorbate, 2.0, "bridge")
+slab.calc = calc
+# Set up LBFGS dynamics object
+opt = LBFGS(slab)
+opt.run(0.05, 100)
+~~~
+{: .python}
+
 #### Relax an adsorbate on a catalytic surface,
 
 ~~~
