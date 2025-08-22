@@ -154,6 +154,47 @@ LBFGS:   20 10:40:31      -93.907350        0.042256
 ~~~
 {: .output}
 
+## Pretrained Model for Omol
+
+This workflow leverages the "uma-s-1p1" pretrained FAIRChem model specifically designed for organic molecules. It encompasses the creation or import of organic molecular structures into an ASE database, followed by batch data preparation and application of the model to predict molecular properties efficiently. This approach facilitates scalable and accurate predictions of organic molecular behavior using cutting-edge machine-learned interatomic potentials.
+
+~~~
+from ase import Atoms
+from ase.db import connect
+from torch.utils.data import DataLoader
+from fairchem.core.datasets import AseDBDataset
+from fairchem.core.datasets.atomic_data import atomicdata_list_to_batch
+from fairchem.core import pretrained_mlip
+# create some atomic structure (e.g hydrogen molecule)
+h2 = Atoms('H2', positions=[(0,0,0),(0,0, 0.74)])
+db_path ='dataset.aselmdb'
+db = connect(db_path, type='aselmdb',append=False) # to create new DB
+db.write(h2, key_value_pairs={'description':'Hydrogen molecule'})
+# Loading the ASE database with AseDBDataset and DataLoader
+db_path ='dataset.aselmdb'
+dataset = AseDBDataset(
+    config=dict(src=db_path, a2g_args=dict(task_name="omol"))
+)
+loader = DataLoader(dataset, batch_size=20,
+                    collate_fn=atomicdata_list_to_batch)
+# load pretained model and do prediction
+predictor = pretrained_mlip.get_predict_unit("uma-s-1p1",device=device)
+for batch in loader:
+    preds = predictor.predict(batch)
+    #print(preds)
+print(preds["energy"][2])
+    
+
+~~~
+{: .python}
+
+~~~
+~~~
+{: .output}
+
+
+
+
 #### Relax an inorganic crystal,
 
 ~~~
