@@ -194,7 +194,154 @@ print(preds["energy"][2])
 ~~~
 {: .output}
 
+## Polymers
 
+This workflow demonstrates the construction and analysis of a polyethylene polymer using a pretrained FAIRChem machine-learned interatomic potential model. It begins by defining the polyethylene repeat unit, consisting of two carbon and four hydrogen atoms, and then generates a polymer chain by replicating and translating this unit to form a longer molecule. The polymer structure is saved into an ASE database for organized data handling. Subsequently, the polymer data is loaded into a dataset and prepared in batches for efficient processing. The pretrained "uma-s-1p1" model, designed for organic molecules, is used to predict molecular properties of the polymer chain. This approach enables scalable and accurate simulations of polymeric systems by integrating machine learning potentials with standard computational chemistry tools.
+
+~~~
+from ase import Atoms
+from ase.db import connect
+from torch.utils.data import DataLoader
+from fairchem.core.datasets import AseDBDataset
+from fairchem.core.datasets.atomic_data import atomicdata_list_to_batch
+from fairchem.core import pretrained_mlip
+import torch
+import numpy as np
+
+# --- Build Polyethylene Chain ---
+repeat_unit = Atoms(
+    'C2H4',
+    positions=[
+        (0.00,  0.00, 0.00),  # C1
+        (1.54,  0.00, 0.00),  # C2
+        (-0.63,  0.90, 0.00),  # H1 (C1)
+        (-0.63, -0.90, 0.00),  # H2 (C1)
+        (2.17,  0.90, 0.00),  # H3 (C2)
+        (2.17, -0.90, 0.00),  # H4 (C2)
+    ]
+)
+
+# Build polymer with 5 repeat units
+polymer_atoms = repeat_unit.copy()
+for i in range(1, 5):
+    unit = repeat_unit.copy()
+    unit.translate((i * 2.54, 0.0, 0.0))  # ~C–C bond + buffer
+    polymer_atoms.extend(unit)
+
+# Save to ASE database
+db_path = 'polymer_dataset.aselmdb'
+with connect(db_path, type='aselmdb', append=False) as db:
+    db.write(polymer_atoms, key_value_pairs={'description': 'Polyethylene, 5 repeat units'})
+
+# --- Load Dataset & Predict ---
+dataset = AseDBDataset(config=dict(
+    src=db_path,
+    a2g_args=dict(task_name='omol')
+))
+loader = DataLoader(dataset, batch_size=1, collate_fn=atomicdata_list_to_batch)  # Batch size 1 for clarity
+
+# Device & Model
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+predictor = pretrained_mlip.get_predict_unit("uma-s-1p1", device=device)
+
+# --- Process Predictions with Formatted Output ---
+for i, batch in enumerate(loader):
+    print(f"\n{'='*60}")
+    print(f"Structure {i+1}")
+    print(f"{'='*60}")
+
+    # Move predictions to CPU and detach
+    preds = predictor.predict(batch)
+    energy = preds['energy'].cpu().detach().numpy().item()
+    forces = preds['forces'].cpu().detach().numpy()  # Shape: (N, 3)
+    stress = preds['stress'].cpu().detach().numpy() if 'stress' in preds else None
+
+    # Get atomic info
+    num_atoms = len(polymer_atoms)
+    atom_symbols = polymer_atoms.get_chemical_symbols()
+
+    # Print Energy
+    print(f"\n Total Energy : {energy: .8f} eV")
+
+    # Print Forces
+    print(f"\nForces (eV/Å) on Atoms:")
+    print(f"{'#':<3} {'Atom':<4} {'Fx':>10} {'Fy':>10} {'Fz':>10} {'|F|':>10}")
+    print("-" * 55)
+    for idx in range(num_atoms):
+        fx, fy, fz = forces[idx]
+        norm = np.linalg.norm(forces[idx])
+        symbol = atom_symbols[idx]
+        print(f"{idx:<3} {symbol:<4} {fx:10.6f} {fy:10.6f} {fz:10.6f} {norm:10.6f}")
+
+    # Print Stress (if available)
+    if stress is not None:
+        stress = stress[0]  # Shape: (9,) or (6,)
+        sxx, sxy, sxz, syx, syy, syz, szx, szy, szz = stress
+        print(f"\nStress Tensor (eV/Å³):")
+        print(f"    [{sxx:8.6f}  {sxy:8.6f}  {sxz:8.6f}]")
+        print(f"    [{syx:8.6f}  {syy:8.6f}  {syz:8.6f}]")
+        print(f"    [{szx:8.6f}  {szy:8.6f}  {szz:8.6f}]")
+
+print(f"\nPrediction completed for {len(dataset)} structure(s).")
+
+~~~
+{: .python}
+
+~~~
+============================================================
+Structure 1
+============================================================
+
+ Total Energy : -10357.98538294 eV
+
+Forces (eV/Å) on Atoms:
+#   Atom         Fx         Fy         Fz        |F|
+-------------------------------------------------------
+0   C      1.765896  -0.000000   0.000000   1.765896
+1   C    -46.918243   0.000002  -0.000002  46.918243
+2   H      1.401135  -0.021788   0.017874   1.401418
+3   H      1.401135   0.021788  -0.017874   1.401418
+4   H    222.772934  15.270905   0.144446 223.295761
+5   H    222.772934 -15.270901  -0.144452 223.295761
+6   C     43.055180   0.000009   0.000003  43.055180
+7   C    -42.646687   0.000000  -0.000002  42.646687
+8   H    -224.083084  15.226253  -0.376390 224.600113
+9   H    -224.083115 -15.226264   0.376395 224.600143
+10  H    213.545059  15.269310  -0.582799 214.091064
+11  H    213.545105 -15.269321   0.582795 214.091110
+12  C     43.606586   0.000001   0.000002  43.606586
+13  C    -43.606598   0.000004  -0.000001  43.606598
+14  H    -213.892731  15.599482   0.582262 214.461624
+15  H    -213.892776 -15.599480  -0.582259 214.461670
+16  H    213.892776  15.599501  -0.582262 214.461670
+17  H    213.892746 -15.599491   0.582263 214.461624
+18  C     42.646698  -0.000007  -0.000001  42.646698
+19  C    -43.055168   0.000001  -0.000001  43.055168
+20  H    -213.545151  15.269302   0.582800 214.091156
+21  H    -213.545105 -15.269307  -0.582799 214.091110
+22  H    224.083023  15.226274   0.376395 224.600052
+23  H    224.083069 -15.226267  -0.376394 224.600098
+24  C     46.918259  -0.000006   0.000000  46.918259
+25  C     -1.765893   0.000001   0.000000   1.765893
+26  H    -222.772888  15.270927  -0.144451 223.295731
+27  H    -222.772934 -15.270930   0.144449 223.295776
+28  H     -1.401136  -0.021787  -0.017875   1.401419
+29  H     -1.401136   0.021787   0.017875   1.401419
+
+Stress Tensor (eV/Å³):
+    [-622.612671  -0.000010  -0.000001]
+    [-0.000010  -220.839111  -0.000001]
+    [-0.000001  -0.000001  0.000000]
+
+Prediction completed for 1 structure(s).
+~~~
+{: .output}
+
+The results present detailed predictions for a single polymer structure. The total energy of the system is about `-10357.99 eV`, indicating the overall stability of the configuration. The forces on each atom are listed with their components in the x, y, and z directions (Fx, Fy, Fz), along with the magnitude of the force |F|, which shows the strength and direction of the atomic interactions that may drive structural relaxation. Notably, several atoms experience large forces, suggesting sites of higher atomic stress or potential instability.
+
+The stress tensor is given in units of `eV/Å³` and represents the internal stresses within the material, shown as a 3x3 matrix diagonal-dominated by negative values in two directions and near zero in the third, indicating anisotropic stress distribution within the polymer structure.
+
+Together, these predictions offer insight into the energetic stability, atomic forces, and mechanical stress state of the polymer, which are critical for understanding its physical properties and behavior under various conditions.
 
 
 #### Relax an inorganic crystal,
