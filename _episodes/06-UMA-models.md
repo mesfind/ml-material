@@ -100,8 +100,13 @@ opt.run(0.05, 100)
 ~~~
 {: .python}
 
+The MLIP calculator is then assigned to the slab to enable efficient evaluation of energies and atomic forces. For structural relaxation, the code employs the Limited-memory Broyden–Fletcher–Goldfarb–Shanno (LBFGS) algorithm, a quasi-Newton method well-suited for optimizing atomic coordinates in molecular simulations. The optimizer is configured to perform geometry relaxation until the maximum force on any atom falls below 0.05 eV/Å or a maximum of 100 steps is reached. This combination of ML-potentials with classical ASE tools demonstrates an advanced approach for accelerating surface chemistry simulations by leveraging accurate machine learning models within established computational chemistry workflows, enabling efficient exploration of adsorbate-surface interactions with reduced computational cost while maintaining predictive accuracy.
+
+
+
 #### Relax an adsorbate on a catalytic surface,
 
+Now time to use a pretrained FAIRChem machine-learned potential with ASE to relax a CO molecule adsorbed on a Cu(100) catalytic surface. It builds the slab and adsorbate, assigns the ML potential calculator, and performs geometry optimization using the LBFGS algorithm to minimize atomic forces efficiently.
 ~~~
 from ase.build import fcc100, add_adsorbate, molecule
 from ase.optimize import LBFGS
@@ -122,6 +127,32 @@ opt = LBFGS(slab)
 opt.run(0.05, 100)
 ~~~
 {: .python}
+
+~~~
+     Step     Time          Energy          fmax
+LBFGS:    0 10:40:21      -89.544140       11.491965
+LBFGS:    1 10:40:22      -92.462341        6.582730
+LBFGS:    2 10:40:22      -92.585173        7.551272
+LBFGS:    3 10:40:23      -92.964017        3.752812
+LBFGS:    4 10:40:23      -93.123250        3.560935
+LBFGS:    5 10:40:24      -93.230204        2.254664
+LBFGS:    6 10:40:24      -93.470363        1.136102
+LBFGS:    7 10:40:25      -93.561651        0.999690
+LBFGS:    8 10:40:25      -93.672328        0.700034
+LBFGS:    9 10:40:26      -93.759912        0.503134
+LBFGS:   10 10:40:26      -93.806733        0.364667
+LBFGS:   11 10:40:27      -93.825594        0.344448
+LBFGS:   12 10:40:27      -93.849672        0.485330
+LBFGS:   13 10:40:28      -93.868526        0.431073
+LBFGS:   14 10:40:28      -93.878749        0.161163
+LBFGS:   15 10:40:29      -93.884701        0.168627
+LBFGS:   16 10:40:29      -93.891148        0.204622
+LBFGS:   17 10:40:30      -93.897887        0.250512
+LBFGS:   18 10:40:30      -93.903948        0.175708
+LBFGS:   19 10:40:31      -93.906856        0.055518
+LBFGS:   20 10:40:31      -93.907350        0.042256
+~~~
+{: .output}
 
 #### Relax an inorganic crystal,
 
