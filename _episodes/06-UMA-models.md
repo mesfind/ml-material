@@ -19,8 +19,9 @@ keypoints:
 </script>
 
 
-# [Universal Models for Atoms](https://scontent.fadd2-1.fna.fbcdn.net/v/t39.2365-6/520537587_1080318074038402_8373516189142708029_n.pdf?_nc_cat=107&ccb=1-7&_nc_sid=3c67a6&_nc_ohc=l3xnwGRFsiIQ7kNvwGUMPLJ&_nc_oc=AdlRoyzTvLWzR5bSr4XHrR9I6fDTrGDfNvRrsGmYNM_VyykCJ41NtSpjJwNd3zZIp3Q&_nc_zt=14&_nc_ht=scontent.fadd2-1.fna&_nc_gid=HYvFYrfUd_ygtu9uY0AGlA&oh=00_AfU2wH8TNYOr6WHx1XnAGlymbw7rxmV0LGF2F-fxT_tLOg&oe=68A27139)
 
+
+# Universal Models for Atoms (UMA)
 [UMA](https://ai.meta.com/research/publications/uma-a-family-of-universal-models-for-atoms/) is an equivariant GNN that leverages a novel technique called Mixture of Linear Experts (MoLE) to give it the capacity to learn the largest multi-modal dataset to date (500M DFT examples), while preserving energy conservation and inference speed. Even a 6M active parameter (145M total) UMA model is able to acheieve SOTA accuracy on a wide range of domains such as materials, molecules and catalysis. 
 
 ![UMA model architecture](uma.svg "UMA model architecture")
@@ -35,6 +36,17 @@ The UMA model uses a Mixture-of-Linear-Expert (MoLE) architecture to achieve ver
 * spin - total spin multiplicity of the system (only used for omol task and defaults to 1)
 * elemental composition - The unordered total elemental composition of the system. Each element has an atom embedding and the composition embedding is the mean over all the atom embeddings. For example H2O2 would be assigned the same embedding regardless of its conformer configuration.
 
+
+
+### How to Access Gated Models on HuggingFace
+
+To use gated models such as UMA, you must first create a HuggingFace account and request permission to access the UMA models.
+
+- Get and login to your [Huggingface account](https://huggingface.co/)
+- Request access to [UMA Models](https://huggingface.co/facebook/UMA)
+- Create a [Huggingface token](https://huggingface.co/settings/tokens/) with the permission “Permissions: Read access to contents of all public gated repos you can access”
+-  Install the  huggingface_hub Python package with `pip install -U "huggingface_hub[cli]"
+- Add the token as an environment variable (using `hf auth login` or by setting the HF_TOKEN environment variable.
 
 ### The UMA task
 
